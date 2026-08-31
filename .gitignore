@@ -1,0 +1,5 @@
+_backup*/
+_deploy/
+*.prima
+*.zip
+listino.html

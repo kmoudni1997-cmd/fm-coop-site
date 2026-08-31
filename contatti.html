@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contatti | FM Coop – Preventivo gratuito a Bergamo, Milano e Val Seriana</title>
+<meta name="description" content="Contatta FM Coop per un preventivo gratuito: WhatsApp, telefono, email o modulo. Pulizie, affitti brevi e manutenzioni a Bergamo, Brescia, Milano, Lago di Garda e Val Seriana." />
+<meta name="theme-color" content="#111214" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111214'/%3E%3Ctext x='50%25' y='54%25' font-family='Arial,sans-serif' font-size='30' font-weight='700' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'%3EFM%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="assets/style.css?v=1788172215" />
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="index.html" class="brand">
+      <img src="assets/logo.png" alt="FM Coop – Facility Management" class="brand-logo" /><span class="brand-text">FM&nbsp;Coop<small>Facility Management · Cooperativa</small></span>
+    </a>
+    <nav class="menu" id="menu">
+      <a href="index.html">Home</a>
+      <a href="servizi.html">Servizi</a>
+      <a href="affitti-brevi.html">Settori</a>
+      <a href="come-lavoriamo.html">Metodo</a>
+      <a href="chi-siamo.html">Azienda</a>
+      <a href="contatti.html" class="nav-cta active">Contatti</a>
+    </nav>
+    <button class="burger" id="burger" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="crumbs"><a href="index.html">Home</a> › Contatti</div>
+    <h1>Parliamo del tuo immobile</h1>
+    <p>Raccontaci di cosa hai bisogno: ti rispondiamo con un preventivo gratuito e personalizzato.</p>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="wrap">
+    <div class="contact-grid">
+      <div class="contact-methods">
+        <a class="cmethod" data-wa>
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 4h4l2 5-3 2c1 3 3 5 6 6l2-3 5 2v4c0 1-1 2-2 2A16 16 0 0 1 3 6c0-1 1-2 2-2z"/></svg></span>
+          <span><b>WhatsApp</b><span>Scrivici, ti rispondiamo subito</span></span>
+        </a>
+        <a class="cmethod" data-tel>
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 4h4l2 5-3 2c1 3 3 5 6 6l2-3 5 2v4c0 1-1 2-2 2A16 16 0 0 1 3 6c0-1 1-2 2-2z"/></svg></span>
+          <span><b>Telefono</b><span data-tel-label>Chiamaci</span></span>
+        </a>
+        <a class="cmethod" data-email>
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+          <span><b>Email</b><span data-email-label>info@fm-coop.com</span></span>
+        </a>
+        <div class="cmethod" style="cursor:default">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 0 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+          <span><b>Sede</b><span>Via San Lorenzo 32, 24029 Vertova (BG)</span></span>
+        </div>
+        <div class="cmethod" style="cursor:default">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+          <span><b>Orari ufficio</b><span>Lun–Ven 8:00–18:00 · Sab 9:00–13:00 · Dom chiuso</span></span>
+        </div>
+        <div class="cmethod" style="cursor:default">
+          <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 0 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+          <span><b>Servizio operativo</b><span>Interventi 7 giorni su 7, anche last minute</span></span>
+        </div>
+      </div>
+
+      <form id="contactForm">
+        <label for="nome">Nome e cognome</label>
+        <input type="text" id="nome" name="nome" required placeholder="Es. Mario Rossi" />
+        <label for="contatto">Email o telefono</label>
+        <input type="text" id="contatto" name="contatto" required placeholder="Come possiamo ricontattarti" />
+        <label for="messaggio">Di cosa hai bisogno?</label>
+        <textarea id="messaggio" name="messaggio" required placeholder="Es. 3 appartamenti in affitto breve a Bergamo, cambi tra ospiti, gestione biancheria..."></textarea>
+        <input type="hidden" name="_subject" value="Nuova richiesta dal sito FM Coop" />
+        <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off" />
+        <label class="consenso">
+          <input type="checkbox" id="privacyOk" name="privacy" required />
+          <span>Ho letto l'<a href="privacy.html" target="_blank" rel="noopener">informativa privacy</a>
+          e acconsento al trattamento dei miei dati per essere ricontattato.</span>
+        </label>
+        <button type="submit" class="btn btn-primary">Invia richiesta</button>
+        <div class="form-msg" id="formMsg"></div>
+        <p style="margin-top:14px;font-size:.82rem;color:var(--muted)">Usiamo i tuoi dati solo per risponderti e prepararti un preventivo: niente pubblicità, niente cessione a terzi. Puoi chiederne la cancellazione quando vuoi scrivendo a info@fm-coop.com.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a href="index.html" class="brand"><img src="assets/logo.png" alt="FM Coop – Facility Management" class="brand-logo" /><span class="brand-text">FM&nbsp;Coop<small>Facility Management · Cooperativa</small></span></a>
+        <p>Cooperativa specializzata nella gestione operativa di immobili, B&B, affitti brevi, uffici, palestre e condomini a Bergamo, Brescia, Milano, Lago di Garda e Val Seriana.</p>
+      </div>
+      <div>
+        <h4>Pagine</h4>
+        <p><a href="servizi.html">Servizi</a></p>
+        <p><a href="affitti-brevi.html">Settori</a></p>
+        <p><a href="come-lavoriamo.html">Metodo</a></p>
+        <p><a href="chi-siamo.html">Azienda</a></p>
+        <p><a href="contatti.html">Contatti</a></p>
+        <p><a href="privacy.html">Privacy Policy</a></p>
+      </div>
+      <div>
+        <h4>Dati aziendali</h4>
+        <p>FM SCRL – Soc. Cooperativa</p>
+        <p>Via San Lorenzo 32, 24029 Vertova (BG)</p>
+        <p>P.IVA / C.F. 04735490163</p>
+        <p>REA BG-485085</p>
+        <p><a data-tel><b data-tel-label>+39 351 503 9851</b></a></p>
+        <p><a data-email>info@fm-coop.com</a></p>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="year"></span> FM SCRL – Facility Management Soc. Cooperativa. Tutti i diritti riservati.</span>
+      <span>fm-coop.com</span>
+    </div>
+  </div>
+</footer>
+
+<a class="wa-float" data-wa aria-label="WhatsApp">
+  <svg viewBox="0 0 32 32"><path d="M16 3C9 3 3.5 8.5 3.5 15.5c0 2.3.6 4.4 1.7 6.3L3 29l7.4-2c1.8 1 3.9 1.5 6 1.5 7 0 12.5-5.5 12.5-12.5S23 3 16 3zm0 22.7c-1.9 0-3.7-.5-5.3-1.5l-.4-.2-4.4 1.2 1.2-4.3-.3-.4a10 10 0 0 1-1.6-5.5C5.2 9.6 10 5 16 5s10.8 4.6 10.8 10.5S22 25.7 16 25.7zm5.9-7.8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.5 8.5 0 0 1-4.2-3.7c-.3-.5.3-.5.8-1.6.1-.2 0-.4 0-.6s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4a4 4 0 0 0-1.2 3c0 1.8 1.3 3.5 1.5 3.7.2.3 2.6 4 6.3 5.5 2.3 1 3.2 1.1 4.4.9.7-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4z"/></svg>
+</a>
+
+<script src="assets/site.js?v=1788172215"></script>
+<script src="assets/effetti.js?v=1788172215"></script>
+</body>
+</html>
