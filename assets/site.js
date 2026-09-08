@@ -13,7 +13,7 @@ const CONFIG = {
   NUMERO_WA:      "393515039851",
   EMAIL:          "info@fm-coop.com",
   WHATSAPP_MSG:   "Buongiorno, vi contatto dal sito FM Coop per richiedere un preventivo.",
-  WEB3FORMS_KEY:  "INCOLLA-QUI-LA-TUA-ACCESS-KEY"
+  WEB3FORMS_KEY:  "ab72b964-b179-4622-943c-559c9f261716"
 };
 
 document.addEventListener("DOMContentLoaded", function () {
