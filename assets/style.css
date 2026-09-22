@@ -1473,3 +1473,11 @@ body.pg-bnb .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),rgba(9,
 body.pg-palestre .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),rgba(9,10,11,.78)),url(serv-palestra.jpg)!important}
 body.pg-uffici .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),rgba(9,10,11,.78)),url(serv-uffici.jpg)!important}
 body.pg-condomini .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),rgba(9,10,11,.78)),url(serv-condomini.jpg)!important}
+
+/* fascia numeri a 6 voci (22/09/2026) */
+.cifre.sei{grid-template-columns:repeat(3,1fr)!important}
+.cifre.sei .cifra:nth-child(3n){border-right:0}
+@media(max-width:760px){.cifre.sei{grid-template-columns:1fr 1fr!important}
+  .cifre.sei .cifra:nth-child(3n){border-right:1px solid var(--filo-scuro)}
+  .cifre.sei .cifra:nth-child(2n){border-right:0}
+  .cifre.sei .cifra:nth-child(-n+4){border-bottom:1px solid var(--filo-scuro)}}
