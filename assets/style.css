@@ -1388,7 +1388,7 @@ section{padding:clamp(74px,9vw,130px) 0}
 /* ═══════════════════ CTA FINALE — fascia immersiva ═══════════════════ */
 .cta-strip{position:relative;overflow:hidden;background:#0a0b0c!important}
 .cta-strip::before{content:"";position:absolute;inset:0;z-index:0;
-  background:linear-gradient(rgba(9,10,11,.72),rgba(9,10,11,.88)),url(foto-team2.jpg) center/cover;
+  background:linear-gradient(rgba(9,10,11,.72),rgba(9,10,11,.88)),url(serv-esterni.jpg) center/cover;
   filter:saturate(.92)}
 .cta-strip > .wrap{position:relative;z-index:1}
 .cta-strip h2{color:#fff!important}
@@ -1410,7 +1410,7 @@ section{padding:clamp(74px,9vw,130px) 0}
 
 /* ═══════════════════ PAGE-HERO cinematografici (pagine interne) ═══════════════════ */
 .page-hero{position:relative;overflow:hidden;
-  background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(foto-team2.jpg)!important;
+  background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(chi-siamo.jpg)!important;
   background-size:cover!important;background-position:center 32%!important}
 .page-hero .wrap,.page-hero>*{position:relative;z-index:1}
 
@@ -1422,7 +1422,7 @@ h2{font-size:clamp(2.4rem,6vw,4.8rem)!important;line-height:.98!important;letter
 
 /* ═══════════════════ STATEMENT full-bleed (momento scenografico) ═══════════════════ */
 .statement{position:relative;min-height:78vh;display:flex;align-items:center;color:#fff;overflow:hidden;
-  background:linear-gradient(rgba(9,10,11,.5),rgba(9,10,11,.68)),url(foto-pulizia.jpg) center/cover fixed}
+  background:linear-gradient(rgba(9,10,11,.5),rgba(9,10,11,.68)),url(serv-vetrate.jpg) center/cover fixed}
 .statement-txt{font-family:var(--serif)!important;font-size:clamp(2.6rem,7vw,5.6rem);line-height:1;letter-spacing:-.03em;
   max-width:20ch;font-weight:600;margin:0;text-shadow:0 2px 30px rgba(0,0,0,.4)}
 .statement-txt em{color:var(--argento);font-style:italic}
@@ -1496,3 +1496,8 @@ body.pg-condomini .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),r
 
 /* foto nei paragrafi della pagina servizi (22/09/2026) */
 .area-voce .voce-foto{width:100%;height:160px;object-fit:cover;border-radius:12px;display:block;margin-bottom:14px}
+
+/* hero dedicati Servizi / Settori / Metodo (22/09/2026) */
+body.pg-servizi .page-hero{background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(serv-logistica.jpg)!important}
+body.pg-settori .page-hero{background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(hero-squadra.jpg)!important}
+body.pg-metodo .page-hero{background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(serv-controllo.jpg)!important}
