@@ -1481,3 +1481,15 @@ body.pg-condomini .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),r
   .cifre.sei .cifra:nth-child(3n){border-right:1px solid var(--filo-scuro)}
   .cifre.sei .cifra:nth-child(2n){border-right:0}
   .cifre.sei .cifra:nth-child(-n+4){border-bottom:1px solid var(--filo-scuro)}}
+
+/* card "quello che non fa" + foto nei blocchi settore (22/09/2026) */
+.diverso-griglia{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:clamp(30px,4vw,52px)}
+.diverso-card{background:#fff;border:1px solid #e6e3dd;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.diverso-card img{width:100%;height:200px;object-fit:cover;display:block}
+.dc-testo{padding:20px 22px 26px}
+.dc-num{font-family:var(--mono,monospace);font-size:.74rem;letter-spacing:.14em;color:#8a8f94}
+.dc-testo h3{margin:8px 0 8px;font-size:1.18rem}
+.dc-testo p{margin:0;color:var(--muted,#5c6166);font-size:.98rem;line-height:1.6}
+@media(max-width:980px){.diverso-griglia{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.diverso-griglia{grid-template-columns:1fr}}
+.blocco-foto{width:100%;height:170px;object-fit:cover;border-radius:12px;display:block;margin-bottom:20px}
