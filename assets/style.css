@@ -1493,3 +1493,6 @@ body.pg-condomini .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),r
 @media(max-width:980px){.diverso-griglia{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.diverso-griglia{grid-template-columns:1fr}}
 .blocco-foto{width:100%;height:170px;object-fit:cover;border-radius:12px;display:block;margin-bottom:20px}
+
+/* foto nei paragrafi della pagina servizi (22/09/2026) */
+.area-voce .voce-foto{width:100%;height:160px;object-fit:cover;border-radius:12px;display:block;margin-bottom:14px}
