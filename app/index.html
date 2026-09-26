@@ -9,8 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="FM Squadra">
 <meta name="robots" content="noindex, nofollow">
 <title>FM Squadra — Area riservata</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111214'/%3E%3Ctext x='50%25' y='54%25' font-family='Arial,sans-serif' font-size='30' font-weight='700' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'%3EFM%3C/text%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="../assets/logo.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="../assets/favicon-192.png?v=2">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png?v=2">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
 :root{--bg:#f4f5f7;--card:#ffffff;--ink:#16181b;--mute:#666d74;--line:#e2e4e7;--nero:#111214;--nero-ink:#ffffff;--acc:#e0a63a;--ok:#2e8b57;--ok-bg:#e6f4ec;--warn:#c98a00;--warn-bg:#fff4dc;--bad:#c0392b;--bad-bg:#fdecea;--grey:#b9c0c7;--tap:#eef0f3}
@@ -21,7 +22,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI"
 .top{position:sticky;top:0;z-index:5;background:var(--nero);color:var(--nero-ink);padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;display:flex;align-items:center;gap:12px;min-height:56px}
 .top b{font-size:18px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top button{background:transparent;border:0;color:var(--nero-ink);font:inherit;font-weight:600;font-size:16px;padding:8px 4px}
-.brand{width:34px;height:34px;border-radius:9px;background:#fff;color:var(--nero);display:grid;place-items:center;font-weight:800;font-size:14px;flex:none}
+.brand{width:40px;height:40px;display:block;flex:none;object-fit:contain}
+.logo-login{width:150px;margin:0 auto;display:block}
 main{padding:16px 16px 110px;display:flex;flex-direction:column;gap:14px;flex:1}
 h1{font-size:23px;margin:0;font-weight:800;text-wrap:balance}
 h2{font-size:13px;margin:0;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
@@ -66,7 +68,11 @@ textarea,select,input[type=text],input[type=password],input[type=date],input[typ
 .kv{display:grid;grid-template-columns:118px 1fr;gap:8px 12px;font-size:15px}
 .kv b{color:var(--mute);font-weight:600}
 .login{display:flex;flex-direction:column;gap:14px;padding-top:26px}
-.login .brand{width:64px;height:64px;font-size:24px;border-radius:16px;margin:0 auto;background:var(--nero);color:#fff}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pinpad button{padding:16px;font:inherit;font-size:24px;font-weight:700;border-radius:12px;border:1px solid var(--line);background:var(--card);color:inherit}
+.pinpad button.del{font-size:20px}
+.dots{display:flex;gap:12px;justify-content:center;padding:8px 0 2px}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--nero);display:block}.dots i.f{background:var(--nero)}
 .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;z-index:9;max-width:90%;text-align:center;font-size:15px}
 .note{font-size:13px;color:var(--mute);margin:0}
 .stat{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
@@ -119,7 +125,7 @@ var DAYCHK=['Biancheria caricata: i set di ogni appartamento, in buste chiuse','
 var SEGN_TYPES=['Guasto (rubinetto, luce, wifi…)','Danno dell’ospite','Oggetto dimenticato','Ospite ancora in casa','Sporco anomalo / ripasso','Altro'];
 
 // ===== STATO =====
-var S={user:null,profile:null,view:'login',err:'',busy:false,pinFor:null,
+var S={user:null,profile:null,view:'login',err:'',busy:false,pinFor:null,pin:'',lu:'',
  program:[],passaggi:{},photos:{},manca:{},segn:{},day:{},dayOpen:true,
  apt:null, // program row corrente
  boss:{tab:'pass',date:todayStr(),program:[],passaggi:[],manca:[],segn:[],apts:[],ops:[],photos:{}}};
@@ -180,8 +186,10 @@ async function ensurePassaggio(pr){
 
 // ===== VISTE =====
 function vLogin(){
- return '<div class="top"><div class="brand">FM</div><b>FM Squadra</b></div><main class="login"><div class="brand">FM</div><h1 style="text-align:center">Area riservata</h1>'+
- '<form id="lf" class="card" style="display:flex;flex-direction:column;gap:12px" autocomplete="on"><label><h2 style="margin-bottom:6px">Nome utente</h2><input type="text" id="lu" autocapitalize="none" autocomplete="username" placeholder="es. badiaa" required></label><label><h2 style="margin-bottom:6px">PIN o password</h2><input type="password" id="lp" autocomplete="current-password" inputmode="numeric" placeholder="••••••" required></label><div class="err">'+esc(S.err)+'</div><button class="btn" type="submit" '+(S.busy?'disabled':'')+'>'+(S.busy?'Entro…':'Entra')+'</button></form>'+
+ var dots='<div class="dots">'+[0,1,2,3,4,5].map(function(i){return '<i class="'+(S.pin.length>i?'f':'')+'"></i>'}).join('')+'</div>';
+ var pad='<div class="pinpad">'+[1,2,3,4,5,6,7,8,9].map(function(n){return '<button type="button" data-k="'+n+'">'+n+'</button>'}).join('')+'<button type="button" class="del" data-k="del">⌫</button><button type="button" data-k="0">0</button><button type="button" class="del" data-k="ok" style="background:var(--nero);color:#fff;font-size:16px">Entra</button></div>';
+ return '<div class="top"><img class="brand" src="../assets/fm-mark-bianco.png?v=2" alt="FM Coop"><b>FM Squadra</b></div><main class="login"><img class="logo-login" src="../assets/logo-nero.png?v=2" alt="FM Coop – Facility Management Cooperativa"><h1 style="text-align:center">Chi sei?</h1>'+
+ '<form id="lf" class="card" style="display:flex;flex-direction:column;gap:12px" autocomplete="off"><input type="text" id="lu" autocapitalize="none" autocomplete="username" placeholder="Il tuo nome utente" value="'+esc(S.lu||'')+'" required><h2 style="text-align:center;margin-top:4px">Il tuo PIN</h2>'+dots+'<div class="err">'+esc(S.err)+'</div>'+pad+'</form>'+
  '<p class="note" style="text-align:center">Solo personale FM Coop. Se non ricordi il PIN chiedi al responsabile.</p></main>';
 }
 function vOggi(){
@@ -194,7 +202,7 @@ function vOggi(){
   return '<button class="apt" data-open="'+pr.id+'"><span class="dot '+st+'"></span><span><span class="n">'+esc(a.name)+'</span><br><span class="s">'+esc(a.address||'')+(a.client?' · '+esc(a.client):'')+(pr.guests?' · '+pr.guests+' ospiti':'')+'</span></span><span class="t">'+t+'</span></button>';}).join('');
  var dn=0;DAYCHK.forEach(function(x,i){if(S.day[i])dn++});var sets=0;ids.forEach(function(pr){sets+=pr.sets||Math.ceil((pr.guests||pr.apartments.guests||2)/2)});
  var daycard='<div class="card"><div class="row" style="justify-content:space-between"><h2>Prima di partire</h2><button class="mini" data-dayopen="1">'+(S.dayOpen?'Nascondi':dn+'/'+DAYCHK.length+' ✔')+'</button></div>'+(S.dayOpen?'<p class="note" style="margin:8px 0 4px">Oggi ti servono circa <b>'+sets+' set</b> di biancheria per '+ids.length+' appartamenti.</p>'+DAYCHK.map(function(x,i){return '<div class="chk"><input type="checkbox" id="d'+i+'" data-day="'+i+'" '+(S.day[i]?'checked':'')+'><label for="d'+i+'">'+x+'</label></div>';}).join(''):'')+'</div>';
- return '<div class="top"><div class="brand">FM</div><b>Ciao '+esc(u.name)+'</b><button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button></div><main><h1>Oggi, '+today()+'</h1><div class="row"><span class="pill '+(done===ids.length&&ids.length?'ok':'grey')+'">'+done+' di '+ids.length+' chiusi</span></div>'+(ids.length?daycard:'')+(rows||'<div class="card">Nessun appartamento assegnato oggi. Se manca qualcosa, chiama il responsabile.</div>')+'</main>';
+ return '<div class="top"><img class="brand" src="../assets/fm-mark-bianco.png?v=2" alt="FM Coop"><b>Ciao '+esc(u.name)+'</b><button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button></div><main><h1>Oggi, '+today()+'</h1><div class="row"><span class="pill '+(done===ids.length&&ids.length?'ok':'grey')+'">'+done+' di '+ids.length+' chiusi</span></div>'+(ids.length?daycard:'')+(rows||'<div class="card">Nessun appartamento assegnato oggi. Se manca qualcosa, chiama il responsabile.</div>')+'</main>';
 }
 function vApt(){
  var pr=S.apt,a=pr.apartments,p=passOf(pr),st=p?(p.checklist||{}):{},nPh=nPhotos(p),closed=!!(p&&p.closed_at);
@@ -235,8 +243,8 @@ function vBoss(){
  if(tab==='spesa'){var ks=Object.keys(spesa);body=ks.length?'<div class="card list">'+ks.map(function(k){return '<div class="it"><span><b>'+esc(k)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(spesa[k].join(', '))+'</span></span><span class="pill warn">×'+spesa[k].length+'</span></div>';}).join('')+'</div>':'<div class="card">Nessun prodotto segnato.</div>';}
  if(tab==='segn')body=B.segn.length?B.segn.map(function(s){return '<div class="card"><div class="row"><span class="pill '+(s.status==='aperta'?'bad':'warn')+'">'+esc(s.type)+'</span><span style="margin-left:auto;color:var(--mute);font-size:13px">'+new Date(s.created_at).toLocaleDateString('it-IT')+' '+hm(s.created_at)+'</span></div><p style="margin:8px 0 4px"><b>'+esc(s.apartments?s.apartments.name:'')+'</b> · '+esc(s.profiles?s.profiles.name:'')+'</p><p style="margin:0">'+esc(s.text||'(solo foto)')+'</p>'+(s.photo_path?'<div class="thumbs" data-sphoto="'+esc(s.photo_path)+'"></div>':'')+'<div class="row" style="margin-top:8px;gap:8px">'+(s.status==='aperta'?'<button class="mini" data-segst="'+s.id+'" data-st="presa">Presa in carico</button>':'')+'<button class="mini" data-segst="'+s.id+'" data-st="chiusa">Chiudi</button></div></div>';}).join(''):'<div class="card">Nessuna segnalazione aperta.</div>';
  if(tab==='prog'){var ops=B.ops.filter(function(o){return o.active&&o.role!=='client'});var cur={};B.program.forEach(function(pr){cur[pr.apt_id]=pr});body='<div class="card"><p class="note" style="margin-bottom:8px">Assegna gli appartamenti per il <b>'+B.date+'</b>. Lascia «—» per toglierli dal programma.</p>'+B.apts.map(function(a){var pr=cur[a.id];return '<div class="assign"><span><b>'+esc(a.name)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(a.client||'')+' · max '+fmt(a.max_min)+'</span></span><select data-assign="'+a.id+'"><option value="">—</option>'+ops.map(function(o){return '<option value="'+o.id+'" '+(pr&&pr.user_id===o.id?'selected':'')+'>'+esc(o.name)+'</option>'}).join('')+'</select></div>';}).join('')+'<button class="btn" id="saveprog" style="margin-top:12px" '+(S.busy?'disabled':'')+'>Salva programma</button></div>';}
- if(tab==='utenti')body='<div class="card" style="display:flex;flex-direction:column;gap:10px"><h2>Nuovo utente</h2><input type="text" id="nu_name" placeholder="Nome e cognome" autocomplete="off"><input type="text" id="nu_user" placeholder="Nome utente per entrare (es. badiaa)" autocapitalize="none" autocomplete="off"><input type="text" id="nu_pin" inputmode="numeric" placeholder="PIN (almeno 6 cifre)" autocomplete="off"><select id="nu_role"><option value="op">Operatrice / operatore</option><option value="boss">Responsabile</option></select><button class="btn" id="nu_save" '+(S.busy?'disabled':'')+'>Crea utente</button><p class="note">Entra con nome utente + PIN. Nessuna email da ricordare.</p></div><div class="card list">'+B.ops.map(function(o){return '<div class="it"><span><b>'+esc(o.name)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(o.username)+' · '+(o.role==='boss'?'responsabile':o.role==='client'?'cliente':'operatrice')+'</span></span><span class="row" style="gap:6px">'+(o.id===S.user.id?'<span class="pill grey">tu</span>':'<button class="mini" data-newpin="'+o.id+'" data-nome="'+esc(o.name)+'">PIN</button><button class="mini '+(o.active?'':'on')+'" data-toggle="'+o.id+'" data-active="'+(o.active?1:0)+'">'+(o.active?'Attivo':'Off')+'</button>')+'</span></div>'+(S.pinFor===o.id?'<div class="row" style="padding:6px 0 10px;gap:8px"><input type="text" id="np_pin" inputmode="numeric" placeholder="Nuovo PIN (6+ cifre)" style="padding:10px"><button class="mini" data-savepin="'+o.id+'">Salva</button></div>':'');}).join('')+'</div>';
- return '<div class="top"><div class="brand">FM</div><b>Pannello · '+esc(S.profile.name)+'</b><button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button></div><main><div class="row" style="justify-content:space-between"><h1>'+(B.date===todayStr()?'Oggi':B.date)+'</h1><input type="date" id="bdate" value="'+B.date+'" style="width:auto;padding:8px 10px;font-size:15px"></div><div class="stat"><div><b>'+closed+'/'+B.program.length+'</b><span>passaggi chiusi</span></div><div><b style="'+(over?'color:var(--bad)':'')+'">'+over+'</b><span>oltre il tempo</span></div><div><b>'+Object.keys(spesa).length+'</b><span>prodotti da comprare</span></div><div><b>'+B.segn.length+'</b><span>segnalazioni aperte</span></div></div><div class="tabs"><button class="'+(tab==='pass'?'on':'')+'" data-tab="pass">Passaggi</button><button class="'+(tab==='prog'?'on':'')+'" data-tab="prog">Programma</button><button class="'+(tab==='spesa'?'on':'')+'" data-tab="spesa">Spesa</button><button class="'+(tab==='segn'?'on':'')+'" data-tab="segn">Segnalazioni</button><button class="'+(tab==='utenti'?'on':'')+'" data-tab="utenti">Utenti</button></div>'+body+'</main>';
+ if(tab==='utenti')body='<div class="card" style="display:flex;flex-direction:column;gap:10px"><h2>Nuovo utente</h2><input type="text" id="nu_name" placeholder="Nome e cognome" autocomplete="off"><input type="text" id="nu_user" placeholder="Nome utente per entrare (es. badiaa)" autocapitalize="none" autocomplete="off"><input type="text" id="nu_pin" inputmode="numeric" placeholder="PIN di 6 cifre" maxlength="6" autocomplete="off"><select id="nu_role"><option value="op">Operatrice / operatore</option><option value="boss">Responsabile</option></select><button class="btn" id="nu_save" '+(S.busy?'disabled':'')+'>Crea utente</button><p class="note">Entra con nome utente + PIN. Nessuna email da ricordare.</p></div><div class="card list">'+B.ops.map(function(o){return '<div class="it"><span><b>'+esc(o.name)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(o.username)+' · '+(o.role==='boss'?'responsabile':o.role==='client'?'cliente':'operatrice')+'</span></span><span class="row" style="gap:6px">'+(o.id===S.user.id?'<span class="pill grey">tu</span>':'<button class="mini" data-newpin="'+o.id+'" data-nome="'+esc(o.name)+'">PIN</button><button class="mini '+(o.active?'':'on')+'" data-toggle="'+o.id+'" data-active="'+(o.active?1:0)+'">'+(o.active?'Attivo':'Off')+'</button>')+'</span></div>'+(S.pinFor===o.id?'<div class="row" style="padding:6px 0 10px;gap:8px"><input type="text" id="np_pin" inputmode="numeric" placeholder="Nuovo PIN (6 cifre)" maxlength="6" style="padding:10px"><button class="mini" data-savepin="'+o.id+'">Salva</button></div>':'');}).join('')+'</div>';
+ return '<div class="top"><img class="brand" src="../assets/fm-mark-bianco.png?v=2" alt="FM Coop"><b>Pannello · '+esc(S.profile.name)+'</b><button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button></div><main><div class="row" style="justify-content:space-between"><h1>'+(B.date===todayStr()?'Oggi':B.date)+'</h1><input type="date" id="bdate" value="'+B.date+'" style="width:auto;padding:8px 10px;font-size:15px"></div><div class="stat"><div><b>'+closed+'/'+B.program.length+'</b><span>passaggi chiusi</span></div><div><b style="'+(over?'color:var(--bad)':'')+'">'+over+'</b><span>oltre il tempo</span></div><div><b>'+Object.keys(spesa).length+'</b><span>prodotti da comprare</span></div><div><b>'+B.segn.length+'</b><span>segnalazioni aperte</span></div></div><div class="tabs"><button class="'+(tab==='pass'?'on':'')+'" data-tab="pass">Passaggi</button><button class="'+(tab==='prog'?'on':'')+'" data-tab="prog">Programma</button><button class="'+(tab==='spesa'?'on':'')+'" data-tab="spesa">Spesa</button><button class="'+(tab==='segn'?'on':'')+'" data-tab="segn">Segnalazioni</button><button class="'+(tab==='utenti'?'on':'')+'" data-tab="utenti">Utenti</button></div>'+body+'</main>';
 }
 function render(){
  var v=S.view,h;
@@ -254,7 +262,7 @@ async function login(u,p){
  S.busy=true;S.err='';render();
  try{var email=u.indexOf('@')>0?u:(u.toLowerCase().trim()+'@'+EMAIL_DOMAIN);var r=await sb.auth.signInWithPassword({email:email,password:p});if(r.error)throw r.error;S.user=r.data.user;await afterLogin();}
  catch(e){S.user=null;S.err=/invalid/i.test(e.message||'')?'Nome utente o PIN sbagliati':'Errore: '+e.message;}
- S.busy=false;render();
+ S.pin='';S.busy=false;render();
 }
 async function afterLogin(){
  await loadProfile();
@@ -263,10 +271,13 @@ async function afterLogin(){
 }
 async function refresh(){try{if(S.profile&&S.profile.role==='boss')await loadBoss();else await loadDay();render();toast('Aggiornato');}catch(e){fail(e);}}
 
-app.addEventListener('submit',function(e){if(e.target.id==='lf'){e.preventDefault();login(document.getElementById('lu').value,document.getElementById('lp').value);}});
+app.addEventListener('submit',function(e){if(e.target.id==='lf'){e.preventDefault();tryPin();}});
+app.addEventListener('input',function(e){if(e.target.id==='lu')S.lu=e.target.value;});
+function tryPin(){var u=(S.lu||'').trim();if(!u){S.err='Scrivi il tuo nome utente';render();return;}if(S.pin.length<6){S.err='PIN di 6 cifre';render();return;}login(u,S.pin);}
 app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
+ if(d.k){var k=d.k;if(S.busy)return;if(k==='del')S.pin=S.pin.slice(0,-1);else if(k==='ok'){tryPin();return;}else if(S.pin.length<6){S.pin+=k;S.err='';if(S.pin.length===6){var u0=(S.lu||'').trim();if(u0){login(u0,S.pin);return;}}}render();var lu=document.getElementById('lu');if(lu&&!S.lu)lu.focus();return;}
  if(d.logout){await sb.auth.signOut();S.user=null;S.profile=null;go('login');return;}
  if(d.reload){await refresh();return;}
  if(d.open){var pr=S.program.find(function(x){return String(x.id)===d.open});if(!pr)return;S.apt=pr;await ensurePassaggio(pr);go('apt');return;}
@@ -283,9 +294,9 @@ app.addEventListener('click',async function(e){
   var r4=await sb.from('segnalazioni').insert({apt_id:S.apt.apt_id,user_id:S.user.id,type:type,text:text,photo_path:path}).select().single();S.busy=false;if(r4.error)throw r4.error;(S.segn[S.apt.apt_id]=S.segn[S.apt.apt_id]||[]).push(r4.data);S._sfile=null;toast('Segnalazione inviata al responsabile');go('apt');return;}
  if(d.fotos){var pid=d.fotos;if(S.boss.photos[pid]){delete S.boss.photos[pid];render();return;}var ph=await sb.from('photos').select('*').eq('passaggio_id',pid);var arr=[];for(var i=0;i<(ph.data||[]).length;i++){var u=await signedUrl(ph.data[i].path);if(u)arr.push({kind:ph.data[i].kind,url:u});}S.boss.photos[pid]=arr;render();return;}
  if(d.segst){var r5=await sb.from('segnalazioni').update({status:d.st}).eq('id',d.segst);if(r5.error)throw r5.error;await loadBoss();render();toast(d.st==='chiusa'?'Segnalazione chiusa':'Presa in carico');return;}
- if(b.id==='nu_save'){var nn=document.getElementById('nu_name').value.trim(),nu=document.getElementById('nu_user').value.trim(),np=document.getElementById('nu_pin').value.trim(),nr=document.getElementById('nu_role').value;if(!nn||!nu||np.length<6){toast('Compila nome, nome utente e un PIN di almeno 6 cifre');return;}S.busy=true;render();var rc=await sb.rpc('crea_utente',{p_username:nu,p_name:nn,p_pin:np,p_role:nr});S.busy=false;if(rc.error)throw rc.error;await loadBoss();render();toast('Utente creato: entra con «'+nu.toLowerCase().replace(/[^a-z0-9]/g,'')+'» e il PIN');return;}
+ if(b.id==='nu_save'){var nn=document.getElementById('nu_name').value.trim(),nu=document.getElementById('nu_user').value.trim(),np=document.getElementById('nu_pin').value.trim(),nr=document.getElementById('nu_role').value;if(!nn||!nu||!/^\d{6}$/.test(np)){toast('Compila nome, nome utente e un PIN di 6 cifre');return;}S.busy=true;render();var rc=await sb.rpc('crea_utente',{p_username:nu,p_name:nn,p_pin:np,p_role:nr});S.busy=false;if(rc.error)throw rc.error;await loadBoss();render();toast('Utente creato: entra con «'+nu.toLowerCase().replace(/[^a-z0-9]/g,'')+'» e il PIN');return;}
  if(d.newpin){S.pinFor=(S.pinFor===d.newpin?null:d.newpin);render();return;}
- if(d.savepin){var pin=document.getElementById('np_pin').value.trim();if(pin.length<6){toast('PIN di almeno 6 cifre');return;}var rp=await sb.rpc('imposta_pin',{p_user:d.savepin,p_pin:pin});if(rp.error)throw rp.error;S.pinFor=null;render();toast('PIN aggiornato');return;}
+ if(d.savepin){var pin=document.getElementById('np_pin').value.trim();if(!/^\d{6}$/.test(pin)){toast('PIN di 6 cifre');return;}var rp=await sb.rpc('imposta_pin',{p_user:d.savepin,p_pin:pin});if(rp.error)throw rp.error;S.pinFor=null;render();toast('PIN aggiornato');return;}
  if(d.toggle){var r6=await sb.from('profiles').update({active:d.active!=='1'}).eq('id',d.toggle);if(r6.error)throw r6.error;await loadBoss();render();return;}
  if(b.id==='saveprog'){S.busy=true;render();var sels=document.querySelectorAll('[data-assign]');var rows=[],dels=[];sels.forEach(function(s){if(s.value)rows.push({day:S.boss.date,apt_id:Number(s.dataset.assign),user_id:s.value,checkin:'15:00',checkout:'10:00'});else dels.push(Number(s.dataset.assign));});
   if(rows.length){var r7=await sb.from('program').upsert(rows,{onConflict:'day,apt_id'});if(r7.error){S.busy=false;throw r7.error;}}
