@@ -69,6 +69,12 @@ h2{font-size:12px;margin:0;color:var(--mute);text-transform:uppercase;letter-spa
 .bar .in{max-width:528px;margin:0 auto}
 .list .it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
 .list .it:first-child{border-top:0}
+.gt{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:8px}
+.gt table{border-collapse:collapse;font-size:13px;min-width:100%}
+.gt th{position:sticky;top:0;background:var(--nero);color:#fff;text-align:left;padding:7px 8px;font-weight:700;white-space:nowrap;font-size:12px}
+.gt td{padding:6px 8px;border-top:1px solid var(--line);white-space:nowrap;vertical-align:top}
+.gt tr:nth-child(even) td{background:rgba(0,0,0,.02)}
+.gt input,.gt select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .mini{background:var(--tap);border:0;border-radius:10px;padding:9px 13px;font:inherit;font-weight:700;color:var(--nero);font-size:13px;white-space:nowrap}
 .mini.on{background:var(--bad-bg);color:var(--bad)}
 .mini.x{padding:6px 9px;font-size:12px}
@@ -210,7 +216,8 @@ function durMin(p){if(!p||!p.started_at||!p.closed_at)return 0;return (new Date(
 function passOf(pr){return S.passaggi[pr.id]||null;}
 function status(pr){var p=passOf(pr);if(!p)return'todo';if(p.closed_at)return'done';if(elapsedMin(p)>=((pr.apartments&&pr.apartments.max_min)||90))return'over';return'doing';}
 function nPhotos(p){return p?Object.keys(S.photos[p.id]||{}).length:0;}
-function isBoss(){return S.profile&&S.profile.role==='boss';}
+function isBoss(){return S.profile&&(S.profile.role==='boss'||S.profile.role==='admin');}
+function isAdmin(){return S.profile&&S.profile.role==='admin';}
 function mapsUrl(a){if(a.maps_url)return a.maps_url;var q=[a.address,'Bergamo'].filter(Boolean).join(', ');return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);}
 function mapsEmbed(a){var addr=[a.address,'Bergamo'].filter(Boolean).join(', ');return 'https://www.google.com/maps?q='+encodeURIComponent(addr)+'&output=embed&z=15';}
 var beeped={};function alarm(id){if(beeped[id])return;beeped[id]=true;try{navigator.vibrate&&navigator.vibrate([300,150,300]);}catch(e){}try{var C=window.AudioContext||window.webkitAudioContext;var ac=new C(),o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=880;g.gain.value=.08;o.connect(g);g.connect(ac.destination);o.start();setTimeout(function(){o.stop();ac.close();},600);}catch(e){}toast('⏰ Tempo massimo superato: chiudi il passaggio o avvisa il responsabile');}
@@ -250,6 +257,7 @@ async function loadBoss(){
  var sg=await sb.from('segnalazioni').select('*, apartments(name), profiles(name)').neq('status','chiusa').order('created_at',{ascending:false}).limit(50);S.boss.segn=sg.data||[];
  var ap=await sb.from('apartments').select('*').order('active',{ascending:false}).order('name');S.boss.apts=ap.data||[];
  var op=await sb.from('profiles').select('*').order('name');S.boss.ops=op.data||[];
+ if(isAdmin()){var co=await sb.from('apt_costi').select('*');S.boss.costi={};(co.data||[]).forEach(function(c){S.boss.costi[c.apt_id]=c});var pa=await sb.from('parametri').select('*').order('chiave');S.boss.par=pa.data||[];}
 }
 async function signedUrl(path){var r=await sb.storage.from('foto').createSignedUrl(path,3600);return r.data?r.data.signedUrl:'';}
 function shrink(file,max){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){var im=new Image();im.onload=function(){var c=document.createElement('canvas'),s=Math.min(1,max/Math.max(im.width,im.height));c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){b?res(b):rej(new Error('foto non valida'))},'image/jpeg',.78);};im.onerror=rej;im.src=fr.result;};fr.onerror=rej;fr.readAsDataURL(file);});}
@@ -266,7 +274,7 @@ function shellWith(items,active,attr,main,cls){var b=navItems(items,active,attr)
 var OP_NAV=[['oggi','🏠','Oggi'],['agenda','📅','Agenda']];
 var BOSS_NAV=[['oggi','🏠','Oggi'],['agenda','📅','Agenda'],['apts','🏢','Appartamenti'],['spesa','🧴','Spesa'],['segn','📸','Segnalazioni'],['utenti','👥','Utenti']];
 function shellOp(active,main,cls){return shellWith(OP_NAV,active,'go',main,cls);}
-function shellBoss(active,main,cls){return shellWith(BOSS_NAV,active,'tab',main,cls);}
+function shellBoss(active,main,cls){return shellWith(isAdmin()?BOSS_NAV.concat([['gest','⚙️','Gestione']]):BOSS_NAV,active,'tab',main,cls);}
 
 // ===== VISTE OPERATRICE =====
 function vLogin(){
@@ -368,6 +376,44 @@ function aptSheet(a,pr){
 function vScheda(){var pr=S.apt,a=pr.apartments;return topbar('Scheda','<button data-go="apt">‹ '+esc(a.name)+'</button>')+shellOp('oggi',aptSheet(a,pr)+'<p class="note">La scheda la compila il responsabile. Se qualcosa non torna, segnalalo.</p>','narrow');}
 
 // ===== VISTE RESPONSABILE =====
+// ===== GESTIONE (solo admin: Karim e NEXUS) =====
+function parVal(k,def){var p=(S.boss.par||[]).filter(function(x){return x.chiave===k})[0];return p&&p.valore!=null?Number(p.valore):def;}
+function eur(n){return n==null||isNaN(n)?'–':n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function costoApt(a,c){
+ // tutto per singolo passaggio
+ var ops=S.boss.ops,pref=ops.filter(function(o){return o.username===a.preferred_username})[0];
+ var oreLav=((a.max_min||90)+parVal('tempo_viaggio_min',20))/60;
+ var costoOra=(pref&&pref.hourly_cost)?Number(pref.hourly_cost):parVal('costo_orario_lordo',12);
+ var personale=oreLav*costoOra;
+ var paga=c&&c.compenso_passaggio!=null?Number(c.compenso_passaggio):null;
+ var bianch=(a.guests||2)*parVal('biancheria_costo_persona',2.55);
+ var materiali=parVal('materiali_consumo',2.5)+parVal('attrezzatura_passaggio',0.5);
+ var km=c&&c.km_ar?Number(c.km_ar):0;var auto=pref?pref.has_car:null;
+ var rimborso=(auto===true)?km*parVal('rimborso_km',0.30):0;
+ var prezzo=c&&c.prezzo_cliente!=null?Number(c.prezzo_cliente):null;
+ var extraB=c&&c.biancheria_extra_prezzo?Number(c.biancheria_extra_prezzo)*(a.guests||2):0;
+ var ricavo=prezzo!=null?prezzo+extraB:null;
+ var costo=personale+bianch+materiali+rimborso;
+ return {ore:oreLav,costoOra:costoOra,personale:personale,paga:paga,bianch:bianch,materiali:materiali,km:km,auto:auto,rimborso:rimborso,prezzo:prezzo,extraB:extraB,ricavo:ricavo,costo:costo,margine:ricavo!=null?ricavo-costo:null,pct:ricavo?((ricavo-costo)/ricavo*100):null};
+}
+function vGest(B){
+ var ops=B.ops.filter(function(o){return o.role==='op'&&o.active});
+ var names=B.ops.map(function(o){return o.username});
+ function selOp(id,val){var extra=(val&&names.indexOf(val)<0)?'<option value="'+esc(val)+'" selected>'+esc(val)+' (non ancora nell’app)</option>':'';return '<select id="'+id+'" style="padding:6px;font-size:13px"><option value="">–</option>'+extra+ops.map(function(o){return '<option value="'+esc(o.username)+'" '+(o.username===val?'selected':'')+'>'+esc(o.name)+'</option>'}).join('')+'</select>';}
+ var zones=[];B.apts.forEach(function(a){if(a.zone&&zones.indexOf(a.zone)<0)zones.push(a.zone)});zones.sort();
+ var zf=B.gzone||'';
+ var apts=B.apts.filter(function(a){return a.active&&(!zf||a.zone===zf)});
+ var h='<h1>Gestione</h1><p class="note">Questa scheda la vedete solo tu e NEXUS. Tutti i numeri sono per <b>un passaggio</b> e si ricalcolano dai parametri qui sotto. Le celle si salvano riga per riga con «Salva».</p>';
+ h+='<div class="card"><h2>Parametri</h2><div class="gt"><table><tr><th>Voce</th><th>Valore</th><th></th></tr>'+(B.par||[]).map(function(p){return '<tr><td><b>'+esc(p.chiave.replace(/_/g,' '))+'</b><br><span class="note">'+esc(p.descrizione||'')+'</span></td><td><input type="number" step="0.01" id="par_'+esc(p.chiave)+'" value="'+p.valore+'" style="width:90px;padding:6px"></td><td><button class="mini" data-parsave="'+esc(p.chiave)+'">Salva</button></td></tr>'}).join('')+'</table></div></div>';
+ h+='<div class="card"><h2>Dipendenti</h2><div class="gt"><table><tr><th>Nome</th><th>Auto</th><th>Riposo fisso</th><th>Max app./giorno</th><th>Zone</th><th>Costo orario</th><th></th></tr>'+ops.map(function(o){return '<tr><td><b>'+esc(o.name)+'</b><br><span class="note">'+esc(o.username)+'</span></td><td><select id="oc_'+o.id+'" style="padding:6px"><option value="">?</option><option value="1" '+(o.has_car===true?'selected':'')+'>sì</option><option value="0" '+(o.has_car===false?'selected':'')+'>no</option></select></td><td><input type="text" id="or_'+o.id+'" value="'+esc(o.rest_days||'')+'" placeholder="es. dom, mer" style="width:110px;padding:6px"></td><td><input type="number" id="om_'+o.id+'" value="'+(o.max_per_day||'')+'" style="width:60px;padding:6px"></td><td><input type="text" id="oz_'+o.id+'" value="'+esc(o.zones||'')+'" placeholder="es. Corridoni, Pignolo" style="width:170px;padding:6px"></td><td><input type="number" step="0.01" id="oh_'+o.id+'" value="'+(o.hourly_cost||'')+'" placeholder="'+parVal('costo_orario_lordo',12)+'" style="width:80px;padding:6px"></td><td><button class="mini" data-opsave="'+o.id+'">Salva</button></td></tr>'}).join('')+'</table></div>'+(ops.length?'':'<p class="note">Nessuna operatrice ancora: creale dalla scheda Utenti.</p>')+'</div>';
+ var tot={n:0,costo:0,ricavo:0,margine:0};
+ h+='<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h2 style="margin:0">Appartamenti ('+apts.length+')</h2><select id="gzone" style="width:auto;padding:6px"><option value="">Tutte le zone</option>'+zones.map(function(z){return '<option '+(z===zf?'selected':'')+'>'+esc(z)+'</option>'}).join('')+'</select></div><div class="gt"><table><tr><th>Appartamento</th><th>Addetta preferibile</th><th>Seconda scelta</th><th>Check-out</th><th>Check-in</th><th>Min</th><th>Codici</th><th>Paga a pass.</th><th>Prezzo cliente</th><th>Km A/R</th><th>Bianch. extra €</th><th>Personale lordo</th><th>Biancheria</th><th>Materiali</th><th>Rimborso km</th><th>Costo tot.</th><th>Ricavo</th><th>Margine</th><th></th></tr>';
+ apts.forEach(function(a){var c=B.costi[a.id]||{};var k=costoApt(a,c);if(k.margine!=null){tot.n++;tot.costo+=k.costo;tot.ricavo+=k.ricavo;tot.margine+=k.margine;}
+  h+='<tr><td><b>'+esc(a.name)+'</b><br><span class="note">'+esc(a.zone||'')+' · '+(a.guests||2)+' p.</span></td><td>'+selOp('gp_'+a.id,a.preferred_username)+'</td><td>'+selOp('gb_'+a.id,a.backup_username)+'</td><td><input type="time" id="go_'+a.id+'" value="'+(a.checkout_default||'10:00').slice(0,5)+'" style="width:95px;padding:6px"></td><td><input type="time" id="gi_'+a.id+'" value="'+(a.checkin_default||'15:00').slice(0,5)+'" style="width:95px;padding:6px"></td><td><input type="number" id="gm_'+a.id+'" value="'+(a.max_min||90)+'" style="width:60px;padding:6px"></td><td><input type="text" id="ga_'+a.id+'" value="'+esc(a.access||'')+'" style="width:180px;padding:6px"></td><td><input type="number" step="0.5" id="gc_'+a.id+'" value="'+(c.compenso_passaggio!=null?c.compenso_passaggio:'')+'" style="width:65px;padding:6px"></td><td><input type="number" step="0.5" id="gpr_'+a.id+'" value="'+(c.prezzo_cliente!=null?c.prezzo_cliente:'')+'" style="width:65px;padding:6px"></td><td><input type="number" id="gk_'+a.id+'" value="'+(c.km_ar!=null?c.km_ar:'')+'" style="width:55px;padding:6px"></td><td><input type="number" step="0.5" id="gbe_'+a.id+'" value="'+(c.biancheria_extra_prezzo!=null?c.biancheria_extra_prezzo:'')+'" title="'+esc(c.biancheria_extra_unita||'')+'" style="width:60px;padding:6px"></td>'+
+   '<td title="'+k.ore.toFixed(2)+' h × '+eur(k.costoOra)+(k.paga!=null?' · paga a passaggio '+eur(k.paga):'')+'">'+eur(k.personale)+'</td><td>'+eur(k.bianch)+'</td><td>'+eur(k.materiali)+'</td><td'+(k.auto==null&&k.km?' title="auto munita? non indicato: 0"':'')+'>'+eur(k.rimborso)+'</td><td><b>'+eur(k.costo)+'</b></td><td>'+eur(k.ricavo)+(k.extraB?'<br><span class="note">di cui bianch. '+eur(k.extraB)+'</span>':'')+'</td><td style="'+(k.margine==null?'':k.margine<0?'color:var(--bad);font-weight:700':k.pct<20?'color:#b7791f;font-weight:700':'color:var(--ok);font-weight:700')+'">'+(k.margine==null?'–':eur(k.margine)+'<br><span class="note">'+k.pct.toFixed(0)+'%</span>')+'</td><td><button class="mini" data-gsave="'+a.id+'">Salva</button></td></tr>';});
+ h+='<tr><td colspan="15"><b>Totale su '+tot.n+' appartamenti con prezzo</b> (un passaggio ciascuno)</td><td><b>'+eur(tot.costo)+'</b></td><td><b>'+eur(tot.ricavo)+'</b></td><td><b>'+eur(tot.margine)+'</b><br><span class="note">'+(tot.ricavo?(tot.margine/tot.ricavo*100).toFixed(0):0)+'%</span></td><td></td></tr></table></div><p class="note">Personale lordo = (minuti massimi + viaggio) × costo orario azienda (o quello del dipendente se impostato). Biancheria = posti letto × costo per persona. Rimborso km solo se l’addetta preferibile è auto munita. Ricavo = prezzo cliente + biancheria fatturata a parte (Manerba 2,50 €/capo, Elisabeth 5 €/persona). Km andata/ritorno stimati dal deposito di via Monte Cenisio: correggili. Se in un viaggio si fanno più appartamenti (Manerba), dividi i km per il numero di appartamenti del giro.</p></div>';
+ return h;
+}
 function vBoss(){
  var B=S.boss,tab=B.tab,body='';
  var byProg={};B.passaggi.forEach(function(p){byProg[p.program_id]=p});
@@ -383,6 +429,7 @@ function vBoss(){
   '<div class="card list">'+(work.length?work.map(function(pr){var st=stOf(pr),p=byProg[pr.id];return '<div class="it"><span class="row"><span class="dot '+st+'"></span><span><b>'+esc(pr.apartments.name)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(pr.profiles?pr.profiles.name:'non assegnato')+' · in '+hmt(pr.checkin||'15:00')+'</span></span></span><span style="text-align:right"><span class="pill '+(st==='done'?'ok':st==='over'?'bad':st==='doing'?'warn':'grey')+'">'+(st==='done'?'chiuso '+hm(p.closed_at)+' · '+fmt(durMin(p)):st==='over'?'⏰ oltre di '+fmt(elapsedMin(p)-pr.apartments.max_min):st==='doing'?'in corso da '+hm(p.started_at):'da fare')+'</span>'+(p?'<br><button class="mini x" data-fotos="'+p.id+'" style="margin-top:6px">foto</button>':'')+'</span></div>'+(p&&B.photos[p.id]?'<div class="thumbs">'+B.photos[p.id].map(function(u){return '<a href="'+u.url+'" target="_blank"><img src="'+u.url+'" alt="'+esc(u.kind)+'" title="'+esc(u.kind)+'"></a>'}).join('')+'</div>':'');}).join(''):'<p class="note">Nessun appartamento in programma per questa data. Usa l’Agenda per assegnare.</p>')+'</div>';}
  if(tab==='spesa'){title='Spesa';var ks=Object.keys(spesa);body='<h1>Lista della spesa</h1>'+(ks.length?'<div class="card list">'+ks.map(function(k){return '<div class="it"><span><b>'+esc(k)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(spesa[k].join(', '))+'</span></span><span class="pill warn">×'+spesa[k].length+'</span></div>';}).join('')+'</div>':'<div class="card">Nessun prodotto segnato per '+dlong(B.date)+'.</div>');}
  if(tab==='segn'){title='Segnalazioni';body='<h1>Segnalazioni aperte</h1>'+(B.segn.length?'<div class="two">'+B.segn.map(function(s){return '<div class="card"><div class="row"><span class="pill '+(s.status==='aperta'?'bad':'warn')+'">'+esc(s.type)+'</span><span style="margin-left:auto;color:var(--mute);font-size:13px">'+new Date(s.created_at).toLocaleDateString('it-IT')+' '+hm(s.created_at)+'</span></div><p style="margin:8px 0 4px"><b>'+esc(s.apartments?s.apartments.name:'')+'</b> · '+esc(s.profiles?s.profiles.name:'')+'</p><p style="margin:0">'+esc(s.text||'(solo foto)')+'</p>'+(s.photo_path?'<div class="thumbs" data-sphoto="'+esc(s.photo_path)+'"></div>':'')+'<div class="row" style="margin-top:8px;gap:8px">'+(s.status==='aperta'?'<button class="mini" data-segst="'+s.id+'" data-st="presa">Presa in carico</button>':'')+'<button class="mini" data-segst="'+s.id+'" data-st="chiusa">Chiudi</button></div></div>';}).join('')+'</div>':'<div class="card">Nessuna segnalazione aperta.</div>');}
+ if(tab==='gest'){title='Gestione';body=isAdmin()?vGest(B):'<div class="card">Solo per l’amministrazione.</div>';}
  if(tab==='apts'){title='Appartamenti';
   if(B.editApt!==null){var a=B.editApt||{kit:[],linen:{},active:true};var lin=a.linen||{};
    var f=function(id,lab,val,type,w){return '<label class="f '+(w?'w':'')+'">'+lab+'<input type="'+(type||'text')+'" id="'+id+'" value="'+esc(val==null?'':val)+'"></label>';};
@@ -488,6 +535,13 @@ app.addEventListener('click',async function(e){
  if(d.segst){var r5=await sb.from('segnalazioni').update({status:d.st}).eq('id',d.segst);if(r5.error)throw r5.error;await loadBoss();render();toast(d.st==='chiusa'?'Segnalazione chiusa':'Presa in carico');return;}
  if(b.id==='nu_save'){var nn=document.getElementById('nu_name').value.trim(),nu=document.getElementById('nu_user').value.trim(),np=document.getElementById('nu_pin').value.trim(),nr=document.getElementById('nu_role').value;if(!nn||!nu||!/^\d{6}$/.test(np)){toast('Compila nome, nome utente e un PIN di 6 cifre');return;}S.busy=true;render();var rc=await sb.rpc('crea_utente',{p_username:nu,p_name:nn,p_pin:np,p_role:nr});S.busy=false;if(rc.error)throw rc.error;await loadBoss();render();toast('Utente creato: entra con «'+nu.toLowerCase().replace(/[^a-z0-9]/g,'')+'» e il PIN');return;}
  if(d.quick){var sel=document.getElementById('qr_'+d.quick);var qr=sel?sel.value:'op';S.busy=true;render();var rq=await sb.rpc('crea_utente',{p_username:d.quick,p_name:d.qname,p_pin:'000000',p_role:qr});S.busy=false;if(rq.error)throw rq.error;await loadBoss();render();toast('Creato «'+d.quick+'»: entra con PIN 000000 e poi sceglie il suo');return;}
+ if(d.parsave){var pv=Number(document.getElementById('par_'+d.parsave).value);var rpv=await sb.from('parametri').update({valore:pv}).eq('chiave',d.parsave);if(rpv.error)throw rpv.error;await loadBoss();render();toast('Parametro salvato');return;}
+ if(d.opsave){var oid=d.opsave,gv=function(p){var el=document.getElementById(p+oid);return el?el.value.trim():''};var car=gv('oc_');var upo={has_car:car===''?null:car==='1',rest_days:gv('or_')||null,max_per_day:gv('om_')?Number(gv('om_')):null,zones:gv('oz_')||null,hourly_cost:gv('oh_')?Number(gv('oh_')):null};var ro=await sb.from('profiles').update(upo).eq('id',oid);if(ro.error)throw ro.error;await loadBoss();render();toast('Dipendente salvato');return;}
+ if(d.gsave){var aid=Number(d.gsave),g2=function(p){var el=document.getElementById(p+aid);return el?el.value.trim():''};var a0=S.boss.apts.filter(function(x){return x.id===aid})[0]||{};
+  var upa={preferred_username:g2('gp_')||null,backup_username:g2('gb_')||null,checkout_default:g2('go_')||null,checkin_default:g2('gi_')||null,max_min:Number(g2('gm_'))||90,access:g2('ga_')||null,updated_at:new Date().toISOString()};if(upa.access!==(a0.access||null))upa.access_updated_at=new Date().toISOString();
+  var ra=await sb.from('apartments').update(upa).eq('id',aid);if(ra.error)throw ra.error;
+  var num=function(v){return v===''?null:Number(v)};var upc={apt_id:aid,compenso_passaggio:num(g2('gc_')),prezzo_cliente:num(g2('gpr_')),km_ar:num(g2('gk_')),biancheria_extra_prezzo:num(g2('gbe_')),updated_at:new Date().toISOString()};
+  var rc2=await sb.from('apt_costi').upsert(upc,{onConflict:'apt_id'});if(rc2.error)throw rc2.error;await loadBoss();render();toast('Riga salvata');return;}
  if(d.newpin){S.pinFor=(S.pinFor===d.newpin?null:d.newpin);render();return;}
  if(d.savepin){var pin=document.getElementById('np_pin').value.trim();if(!/^\d{6}$/.test(pin)){toast('PIN di 6 cifre');return;}var rp=await sb.rpc('imposta_pin',{p_user:d.savepin,p_pin:pin});if(rp.error)throw rp.error;S.pinFor=null;render();toast('PIN aggiornato');return;}
  if(d.toggle){var r6=await sb.from('profiles').update({active:d.active!=='1'}).eq('id',d.toggle);if(r6.error)throw r6.error;await loadBoss();render();return;}
@@ -497,6 +551,7 @@ app.addEventListener('change',async function(e){
  var t=e.target,d=t.dataset;
  try{
  if(t.id==='bdate'){S.boss.date=t.value;await loadBoss();render();return;}
+ if(t.id==='gzone'){S.boss.gzone=t.value;render();return;}
  if(d.kind){var day=d.day,uid=d.kind,kind=t.value;var del=await sb.from('program').delete().eq('day',day).eq('user_id',uid).is('apt_id',null);if(del.error)throw del.error;
   if(kind!=='lavoro'){var del2=await sb.from('program').delete().eq('day',day).eq('user_id',uid);if(del2.error)throw del2.error;var ins=await sb.from('program').insert({day:day,user_id:uid,apt_id:null,kind:kind});if(ins.error)throw ins.error;}
   await loadAgenda();render();toast('Salvato');return;}
