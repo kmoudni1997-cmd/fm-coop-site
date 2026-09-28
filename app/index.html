@@ -202,7 +202,7 @@ var DAYCHK=['Biancheria caricata: i set di ogni appartamento, in buste chiuse','
 var SEGN_TYPES=['Guasto (rubinetto, luce, wifi…)','Danno dell’ospite','Oggetto dimenticato','Ospite ancora in casa','Sporco anomalo / ripasso','Altro'];
 var KINDS={lavoro:'Lavoro',riposo:'Riposo',ferie:'Ferie',malattia:'Malattia',altro:'Altro'};
 // Dipendenti attivi nell'archivio NEXUS (nexus.db, 26/09/2026): [nome utente, nome, reparto]
-var DIPENDENTI=[['badiaa','Badiaa Ajdar','pulizie'],['gedara','Thunpane Gedara Nipuni','pulizie'],['jiya','Jiya (Wajeeha Butt)','pulizie'],['iman','Iman Chafi','pulizie'],['karima','Karima Chafi','pulizie'],['alain','Alain Gonzalez Rodriguez','pulizie'],['khalid','Khalid Moudni','pulizie'],['zineb','Zineb Rhiat','pulizie'],['hayat','Hayat','pulizie'],['maria','Maria','pulizie'],['chaima','Chaima','pulizie'],['aziza','Aziza','pulizie'],['mariem','Meryem Azarif','pulizie'],['anas','Anas Hamzaoui','manutenzioni'],['driss','Driss Namita','manutenzioni'],['yassin','Yassin Moudni','ufficio']];
+var DIPENDENTI=[['badiaa','Badiaa Ajdar','pulizie'],['gedara','Thunpane Gedara Nipuni','pulizie'],['jiya','Jiya (Wajeeha Butt)','pulizie'],['rosa','Rosa','pulizie'],['iman','Iman Chafi','pulizie'],['karima','Karima Chafi','pulizie'],['alain','Alain Gonzalez Rodriguez','pulizie'],['khalid','Khalid Moudni','pulizie'],['zineb','Zineb Rhiat','pulizie'],['hayat','Hayat','pulizie'],['maria','Maria','pulizie'],['chaima','Chaima','pulizie'],['aziza','Aziza','pulizie'],['mariem','Meryem Azarif','pulizie'],['anas','Anas Hamzaoui','manutenzioni'],['driss','Driss Namita','manutenzioni'],['yassin','Yassin Moudni','ufficio']];
 var DOTAZIONI=[['cappa','Cappa'],['forno','Forno'],['ventola','Ventola in bagno'],['clima','Aria condizionata / pompa di calore'],['bollitore','Bollitore o macchina del caffè'],['lavastoviglie','Lavastoviglie'],['lavatrice','Lavatrice'],['freezer','Freezer']];
 var LINEN_KEYS=[['matr','Lenzuola matrimoniali'],['sing','Lenzuola singole'],['fed','Federe'],['teli','Teli bagno'],['salv','Salviette viso'],['tapp','Tappetini'],['strof','Strofinacci']];
 var GIORNI=['lun','mar','mer','gio','ven','sab','dom'];
@@ -618,7 +618,13 @@ app.addEventListener('change',async function(e){
   if(kind!=='lavoro'){var del2=await sb.from('program').delete().eq('day',day).eq('user_id',uid);if(del2.error)throw del2.error;var ins=await sb.from('program').insert({day:day,user_id:uid,apt_id:null,kind:kind});if(ins.error)throw ins.error;}
   await loadAgenda();render();toast('Salvato');return;}
  if(d.addapt){if(!t.value)return;var day2=d.day,uid2=d.addapt,aid=Number(t.value);var cnt=S.ag.rows.filter(function(x){return x.day===day2&&x.user_id===uid2&&x.apt_id}).length;
-  var up=await sb.from('program').upsert({day:day2,apt_id:aid,user_id:uid2,kind:'lavoro',ord:cnt+1,checkin:'15:00',checkout:'10:00'},{onConflict:'day,apt_id'});if(up.error)throw up.error;await loadAgenda();render();toast('Assegnato');return;}
+  // più persone possono avere lo stesso appartamento lo stesso giorno (una riga ciascuna); se c'è una riga "non assegnata" la si prende quella
+  var free=await sb.from('program').select('id').eq('day',day2).eq('apt_id',aid).is('user_id',null).limit(1);if(free.error)throw free.error;
+  var mine=await sb.from('program').select('id').eq('day',day2).eq('apt_id',aid).eq('user_id',uid2).limit(1);if(mine.error)throw mine.error;
+  var up;if(mine.data&&mine.data.length){toast('Già assegnato a questa persona');return;}
+  else if(free.data&&free.data.length){up=await sb.from('program').update({user_id:uid2,kind:'lavoro',ord:cnt+1}).eq('id',free.data[0].id);}
+  else{up=await sb.from('program').insert({day:day2,apt_id:aid,user_id:uid2,kind:'lavoro',ord:cnt+1,checkin:'15:00',checkout:'10:00'});}
+  if(up.error)throw up.error;await loadAgenda();render();toast('Assegnato');return;}
  if(d.daychk){S.day[d.daychk]=t.checked;var r=await sb.from('day_check').upsert({user_id:S.user.id,day:todayStr(),items:S.day},{onConflict:'user_id,day'});if(r.error)throw r.error;return;}
  if(d.chk){var p=passOf(S.apt);if(!p)return;p.checklist=p.checklist||{};p.checklist[d.chk]=t.checked;var r2=await sb.from('passaggi').update({checklist:p.checklist}).eq('id',p.id);if(r2.error)throw r2.error;return;}
  if(d.photo){var f=t.files&&t.files[0];if(!f)return;var p2=passOf(S.apt);if(!p2)return;var sl=t.closest('.slot');sl.classList.add('busy');
