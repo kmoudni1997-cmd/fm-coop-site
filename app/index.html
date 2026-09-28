@@ -236,7 +236,14 @@ function isBoss(){return S.profile&&(S.profile.role==='boss'||S.profile.role==='
 function isAdmin(){return S.profile&&S.profile.role==='admin';}
 function mapsUrl(a){if(a.maps_url)return a.maps_url;var q=[a.address,'Bergamo'].filter(Boolean).join(', ');return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);}
 function mapsEmbed(a){var addr=[a.address,'Bergamo'].filter(Boolean).join(', ');return 'https://www.google.com/maps?q='+encodeURIComponent(addr)+'&output=embed&z=15';}
-var beeped={};function alarm(id){if(beeped[id])return;beeped[id]=true;try{navigator.vibrate&&navigator.vibrate([300,150,300]);}catch(e){}try{var C=window.AudioContext||window.webkitAudioContext;var ac=new C(),o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=880;g.gain.value=.08;o.connect(g);g.connect(ac.destination);o.start();setTimeout(function(){o.stop();ac.close();},600);}catch(e){}toast('⏰ Tempo massimo superato: chiudi il passaggio o avvisa il responsabile');}
+var AC=null,WL=null,beeped={};
+function sblocca(){try{var C=window.AudioContext||window.webkitAudioContext;if(!AC&&C)AC=new C();if(AC&&AC.state==='suspended')AC.resume();}catch(e){}}
+function suona(volte){try{navigator.vibrate&&navigator.vibrate([400,200,400,200,400]);}catch(e){}try{sblocca();if(!AC)return;for(var i=0;i<(volte||3);i++){(function(k){var o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=k%2?660:880;g.gain.value=.12;o.connect(g);g.connect(AC.destination);var t0=AC.currentTime+k*0.45;o.start(t0);o.stop(t0+0.35);})(i);}}catch(e){}}
+async function tieniAcceso(){try{if('wakeLock' in navigator&&!WL){WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',function(){WL=null;});}}catch(e){}}
+function lasciaSpegnere(){try{if(WL){WL.release();WL=null;}}catch(e){}}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&S.program&&S.program.some(function(pr){var q=passOf(pr);return q&&!q.closed_at;}))tieniAcceso();});
+function alarm(id,tipo){var k=id+':'+tipo;if(beeped[k])return;beeped[k]=true;suona(tipo==='pre'?2:4);
+ toast(tipo==='pre'?'⏳ Mancano 10 minuti al tempo massimo':'⏰ Tempo massimo superato: chiudi il passaggio o avvisa il responsabile');}
 function go(v){S.view=v;S.err='';render();window.scrollTo(0,0);}
 function fail(e){console.error(e);toast('Errore: '+(e&&e.message?e.message:e));}
 
@@ -347,7 +354,7 @@ function vAgenda(){
 }
 function dayDetail(d,list){
  if(!isBoss()){var work=list.filter(function(x){return x.kind==='lavoro'&&x.apt_id}),offs=list.filter(function(x){return x.kind!=='lavoro'});
-  return '<div class="card" id="daydet"><h2 style="margin-bottom:8px">'+dlong(d)+'</h2>'+(offs.map(function(x){return '<div class="chk"><span class="pill '+(x.kind==='riposo'?'blue':'viola')+'">'+KINDS[x.kind]+'</span>'+(x.note?' <span class="note">'+esc(x.note)+'</span>':'')+'</div>'}).join(''))+(work.map(function(x){return '<div class="chk"><span style="flex:1"><b>'+esc(x.apartments.name)+'</b><br><span class="note">'+(x.checkout?'out '+hmt(x.checkout)+' · ':'')+'in '+hmt(x.checkin||'15:00')+(x.guests?' · '+x.guests+' ospiti':'')+(x.note?' · '+esc(x.note):'')+'</span></span></div>'}).join(''))+(list.length?'':'<p class="note">Niente in programma.</p>')+'</div>';}
+  return '<div class="card" id="daydet"><h2 style="margin-bottom:8px">'+dlong(d)+'</h2>'+(offs.map(function(x){return '<div class="chk"><span class="pill '+(x.kind==='riposo'?'blue':'viola')+'">'+KINDS[x.kind]+'</span>'+(x.note?' <span class="note">'+esc(x.note)+'</span>':'')+'</div>'}).join(''))+(work.map(function(x){return '<button class="apt" data-agapt="'+x.id+'" style="width:100%;text-align:left;margin-top:6px"><span style="flex:1"><span class="n">'+esc(x.apartments.name)+'</span><br><span class="s">'+(x.start_time?'ore '+hmt(x.start_time)+' · ':'')+(x.checkout?'out '+hmt(x.checkout)+' · ':'')+'in '+hmt(x.checkin||'15:00')+(x.guests?' · '+x.guests+' ospiti':'')+(x.note?' · '+esc(x.note):'')+'</span></span><span class="t">Scheda ›</span></button>'}).join(''))+(list.length?'':'<p class="note">Niente in programma.</p>')+'</div>';}
  var ops=S.boss.ops.filter(function(o){return o.active&&o.role!=='client'}),apts=S.boss.apts.filter(function(a){return a.active});
  var byUser={};list.forEach(function(x){(byUser[x.user_id||'_']=byUser[x.user_id||'_']||[]).push(x)});
  var assigned={};list.forEach(function(x){if(x.apt_id)assigned[x.apt_id]=x});
@@ -362,9 +369,10 @@ function vApt(){
  var nChk=0;CHECK.forEach(function(r){nChk+=r.items.length});var dChk=0;for(var k in st)if(st[k])dChk++;
  var m=S.manca[pr.apt_id]||{},miss=Object.keys(m).length,segn=(S.segn[pr.apt_id]||[]).length;
  var timer='';if(p&&!closed){var e=elapsedMin(p),mx=a.max_min||90,pc=Math.min(100,Math.round(e/mx*100)),cls=e>=mx?'over':(e>=mx*.8?'warn':'');timer='<div class="timer '+cls+'"><div class="trk"><div class="fil" style="width:'+pc+'%"></div></div><b>'+(e>=mx?'+'+fmt(e-mx)+' oltre':fmt(e)+' / '+fmt(mx))+'</b></div>'+(e>=mx?'<p class="warnbox" style="color:var(--bad)">⏰ Tempo massimo superato ('+fmt(mx)+'). Chiudi il passaggio o avvisa il responsabile.</p>':'');}
- var bar=closed?'':'<div class="bar"><div class="in"><button class="btn" id="close" '+(nPh<PHOTOS.length||S.busy?'disabled':'')+'>'+(nPh<PHOTOS.length?'Chiudi passaggio (mancano '+(PHOTOS.length-nPh)+' foto)':'Chiudi passaggio')+'</button></div></div>';
+ var bar=closed?'':(!p?'<div class="bar"><div class="in"><button class="btn acc" id="start" '+(S.busy?'disabled':'')+'>▶ Inizia la pulizia</button></div></div>':'<div class="bar"><div class="in"><button class="btn" id="close" '+(nPh<PHOTOS.length||S.busy?'disabled':'')+'>'+(nPh<PHOTOS.length?'Chiudi passaggio (mancano '+(PHOTOS.length-nPh)+' foto)':'Chiudi passaggio')+'</button></div></div>');
  var body='<div class="card"><div class="row"><span class="dot '+status(pr)+'"></span><span>'+esc(a.address||'')+(a.client?' · '+esc(a.client):'')+'</span></div><div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">'+(pr.checkout?'<span class="pill grey">check-out '+hmt(pr.checkout)+'</span>':'')+'<span class="pill grey">check-in '+hmt(pr.checkin||'15:00')+'</span><span class="pill grey">'+(pr.guests||a.guests||'?')+' ospiti</span>'+(p&&!closed?'<span class="pill warn">iniziato '+hm(p.started_at)+'</span>':'')+'</div>'+timer+((pr.note||a.note)?'<p class="warnbox">⚠ '+esc(pr.note||a.note)+'</p>':'')+'</div>'+
- '<div class="grid"><button class="tile" data-go="check"><span class="ic">✅</span><span class="l">Check-list</span><span class="m">'+dChk+'/'+nChk+' voci · '+nPh+'/'+PHOTOS.length+' foto</span></button><button class="tile" data-go="manca"><span class="ic">🧴</span><span class="l">Manca</span><span class="m">'+(miss?miss+' prodotti segnati':'niente segnato')+'</span></button><button class="tile" data-go="segnala"><span class="ic">📸</span><span class="l">Segnala</span><span class="m">'+(segn?segn+' inviate':'guasto, danno, oggetto')+'</span></button><button class="tile" data-go="scheda"><span class="ic">📋</span><span class="l">Scheda</span><span class="m">accesso, wifi, mappa, note</span></button></div>'+
+ (!p?'<div class="card" style="text-align:center"><b>Pulizia non ancora iniziata</b><p class="note" style="margin:6px 0 0">Guarda pure la scheda e i codici. Il tempo parte solo quando premi «Inizia la pulizia», quando sei dentro l’appartamento.</p></div>':'')+
+ '<div class="grid"><button class="tile" data-go="'+(p?'check':'apt')+'" '+(p?'':'disabled style="opacity:.45"')+'><span class="ic">✅</span><span class="l">Check-list</span><span class="m">'+(p?dChk+'/'+nChk+' voci · '+nPh+'/'+PHOTOS.length+' foto':'dopo «Inizia la pulizia»')+'</span></button><button class="tile" data-go="manca"><span class="ic">🧴</span><span class="l">Manca</span><span class="m">'+(miss?miss+' prodotti segnati':'niente segnato')+'</span></button><button class="tile" data-go="segnala"><span class="ic">📸</span><span class="l">Segnala</span><span class="m">'+(segn?segn+' inviate':'guasto, danno, oggetto')+'</span></button><button class="tile" data-go="scheda"><span class="ic">📋</span><span class="l">Scheda</span><span class="m">accesso, wifi, mappa, note</span></button></div>'+
  (closed?'<div class="card closed">✔ Passaggio chiuso alle '+hm(p.closed_at)+' · durata '+fmt(durMin(p))+(p.over_by_min>0?' · oltre di '+fmt(p.over_by_min):'')+'</div>':'');
  return topbar(esc(a.name),'<button data-go="oggi">‹ Oggi</button>')+shellOp('oggi',body,'narrow')+bar;
 }
@@ -393,6 +401,7 @@ function aptSheet(a,pr){
  var upd=a.access_updated_at?new Date(a.access_updated_at).toLocaleDateString('it-IT'):'—';
  return '<div class="card kv"><b>Indirizzo</b><span>'+esc(a.address||'—')+'</span><b>Piano</b><span>'+esc(a.floor||'—')+(a.elevator===true?' · ascensore':a.elevator===false?' · senza ascensore':'')+'</span><b>Cliente</b><span>'+esc(a.client||'—')+'</span><b>Tipo</b><span>'+esc(a.size||'—')+(a.size_m2?' · '+a.size_m2+' m²':'')+'</span><b>Posti letto</b><span>'+esc(a.beds||'—')+' · '+(pr&&pr.guests?pr.guests:a.guests||'?')+' ospiti</span><b>Biancheria</b><span>'+(lin||'—')+'</span><b>Accesso</b><span>'+esc(a.access||'—')+'<br><span class="note">aggiornato il '+upd+'</span></span><b>Wifi</b><span>'+esc(a.wifi||'—')+'</span><b>Prodotti</b><span>'+esc(a.products_where||'—')+'</span><b>Non toccare</b><span>'+esc(a.no_touch||'—')+'</span><b>Extra</b><span>'+esc(a.extras||'—')+'</span><b>Tempo max</b><span>'+fmt(a.max_min||90)+'</span><b>Note</b><span>'+(a.note?'<span class="warnbox" style="margin:0">⚠ '+esc(a.note)+'</span>':'—')+'</span></div>'+(a.description?'<div class="card"><h2 style="margin-bottom:6px">Descrizione</h2>'+esc(a.description)+'</div>':'')+(a.address?'<div class="card"><h2 style="margin-bottom:8px">Mappa</h2><iframe class="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="'+mapsEmbed(a)+'"></iframe><a class="btn ghost sm" style="display:inline-block;margin-top:10px;text-decoration:none" href="'+esc(mapsUrl(a))+'" target="_blank" rel="noopener">Apri in Google Maps</a></div>':'');
 }
+function vSchedaAg(){var x=S.agApt;if(!x)return vAgenda();return topbar('Scheda','<button data-go="agenda">‹ Agenda</button>')+shellOp('agenda','<div class="card"><h2 style="margin:0">'+esc(x.a.name)+'</h2><p class="note" style="margin:6px 0 0">'+dlong(x.pr.day)+(x.pr.start_time?' · ore '+hmt(x.pr.start_time):'')+'. Solo da guardare: la pulizia si inizia il giorno stesso dalla pagina Oggi.</p></div>'+aptSheet(x.a,x.pr),'narrow');}
 function vScheda(){var pr=S.apt,a=pr.apartments;return topbar('Scheda','<button data-go="apt">‹ '+esc(a.name)+'</button>')+shellOp('oggi',aptSheet(a,pr)+'<p class="note">La scheda la compila il responsabile. Se qualcosa non torna, segnalalo.</p>','narrow');}
 
 // ===== VISTE RESPONSABILE =====
@@ -506,7 +515,7 @@ function vBoss(){
 }
 function render(){
  var v=S.view,h;
- if(!S.user||v==='login')h=vLogin();else if(v==='newpin')h=vNewPin();else if(isBoss())h=(S.boss.tab==='agenda')?vAgenda():vBoss();else if(v==='agenda')h=vAgenda();else if(v==='apt')h=vApt();else if(v==='check')h=vCheck();else if(v==='manca')h=vManca();else if(v==='segnala')h=vSegnala();else if(v==='scheda')h=vScheda();else h=vOggi();
+ if(!S.user||v==='login')h=vLogin();else if(v==='newpin')h=vNewPin();else if(isBoss())h=(S.boss.tab==='agenda')?vAgenda():vBoss();else if(v==='agenda')h=vAgenda();else if(v==='apt')h=vApt();else if(v==='check')h=vCheck();else if(v==='manca')h=vManca();else if(v==='segnala')h=vSegnala();else if(v==='scheda')h=vScheda();else if(v==='schedaag')h=vSchedaAg();else h=vOggi();
  app.replaceChildren(frag(h));
  if(v==='check')loadPhotoThumbs();
  if(isBoss()&&S.boss.tab==='segn')loadSegnThumbs();
@@ -565,7 +574,9 @@ app.addEventListener('click',async function(e){
  if(d.k){tastoPin(d.k);return;}
  if(d.logout){await sb.auth.signOut();S.user=null;S.profile=null;go('login');return;}
  if(d.reload){await refresh();return;}
- if(d.open){var pr=S.program.find(function(x){return String(x.id)===d.open});if(!pr)return;S.apt=pr;var pp=await ensurePassaggio(pr);S.per=S.per||{};await loadPeriodici(pp.id,S.per);go('apt');return;}
+ if(d.open){var pr=S.program.find(function(x){return String(x.id)===d.open});if(!pr)return;S.apt=pr;S.per=S.per||{};var pp=passOf(pr);if(pp&&!S.per[pp.id])await loadPeriodici(pp.id,S.per);go('apt');return;}
+ if(b.id==='start'){var prs=S.apt;if(!prs||passOf(prs))return;if(!confirm('Inizi adesso la pulizia di '+prs.apartments.name+'? Da questo momento parte il tempo.'))return;sblocca();S.busy=true;render();var ps=await ensurePassaggio(prs);S.per=S.per||{};await loadPeriodici(ps.id,S.per);S.busy=false;tieniAcceso();render();toast('Pulizia iniziata alle '+hm(ps.started_at));return;}
+ if(d.agapt){var ra=(S.ag.rows||[]).find(function(x){return String(x.id)===d.agapt});if(!ra)return;var fa=await sb.from('apartments').select('*').eq('id',ra.apt_id).maybeSingle();if(fa.error)throw fa.error;if(!fa.data){toast('La scheda si apre dal giorno prima del lavoro');return;}S.agApt={pr:ra,a:fa.data};go('schedaag');return;}
  if(d.agnav!==undefined){var n=Number(d.agnav);if(n===0){S.ag.date=todayStr();}else{var p=pdate(S.ag.date);if(S.ag.mode==='mese')p.setMonth(p.getMonth()+n);else if(S.ag.mode==='sett')p.setDate(p.getDate()+7*n);else p.setDate(p.getDate()+n);S.ag.date=dstr(p);}S.ag.sel=null;await loadAgenda();render();return;}
  if(d.agmode&&d.agday){S.ag.mode=d.agmode;S.ag.date=d.agday;S.ag.sel=null;await loadAgenda();render();return;}
  if(d.agmode){S.ag.mode=d.agmode;S.ag.sel=null;await loadAgenda();render();return;}
@@ -582,7 +593,7 @@ app.addEventListener('click',async function(e){
   if(ex){var r1=await sb.from('manca').update({done:true}).eq('id',ex.id);if(r1.error)throw r1.error;delete S.manca[aid][d.manca];toast('Annullato');}
   else{var r2=await sb.from('manca').insert({apt_id:aid,user_id:S.user.id,item:d.manca,day:todayStr()}).select().single();if(r2.error)throw r2.error;S.manca[aid][d.manca]=r2.data;toast('Segnato per la spesa');}
   render();return;}
- if(b.id==='close'){var p1=passOf(S.apt);if(!p1||nPhotos(p1)<PHOTOS.length)return;S.busy=true;render();var over=Math.max(0,Math.round(elapsedMin(p1)-(S.apt.apartments.max_min||90)));var r3=await sb.from('passaggi').update({closed_at:new Date().toISOString(),over_by_min:over}).eq('id',p1.id).select().single();S.busy=false;if(r3.error)throw r3.error;S.passaggi[S.apt.id]=r3.data;toast('Passaggio chiuso ✔');go('oggi');return;}
+ if(b.id==='close'){var p1=passOf(S.apt);if(!p1||nPhotos(p1)<PHOTOS.length)return;S.busy=true;render();var over=Math.max(0,Math.round(elapsedMin(p1)-(S.apt.apartments.max_min||90)));var r3=await sb.from('passaggi').update({closed_at:new Date().toISOString(),over_by_min:over}).eq('id',p1.id).select().single();S.busy=false;if(r3.error)throw r3.error;S.passaggi[S.apt.id]=r3.data;lasciaSpegnere();toast('Passaggio chiuso ✔');go('oggi');return;}
  if(b.id==='ssend'){var type=document.getElementById('stype').value,text=document.getElementById('stext').value.trim();var f=S._sfile;if(!text&&!f){toast('Scrivi una riga o fai una foto');return;}S.busy=true;render();var path=null;
   if(f){var blob=await shrink(f,1280);path=S.user.id+'/segnalazioni/'+Date.now()+'.jpg';var up=await sb.storage.from('foto').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(up.error){S.busy=false;throw up.error;}}
   var r4=await sb.from('segnalazioni').insert({apt_id:S.apt.apt_id,user_id:S.user.id,type:type,text:text,photo_path:path}).select().single();S.busy=false;if(r4.error)throw r4.error;(S.segn[S.apt.apt_id]=S.segn[S.apt.apt_id]||[]).push(r4.data);S._sfile=null;toast('Segnalazione inviata al responsabile');go('apt');return;}
@@ -642,7 +653,9 @@ app.addEventListener('change',async function(e){
  try{var s=await sb.auth.getSession();if(s.data&&s.data.session){S.user=s.data.session.user;await afterLogin();}else{S.view='login';}}
  catch(e){S.view='login';S.err='Connessione non riuscita, riprova.';console.error(e);}
  render();
- setInterval(function(){if(!S.user||!S.profile||isBoss())return;var v=S.view;S.program.forEach(function(pr){if(pr.apt_id&&status(pr)==='over'&&(v==='oggi'||(S.apt&&S.apt.id===pr.id)))alarm(pr.id);});if(v==='apt'||v==='oggi')render();},30000);
+ setInterval(function(){if(!S.user||!S.profile||isBoss())return;var v=S.view,aperti=0;S.program.forEach(function(pr){var q=passOf(pr);if(!pr.apt_id||!q||q.closed_at)return;aperti++;var e=elapsedMin(q),mx=(pr.apartments&&pr.apartments.max_min)||90;
+  if(e>=mx-10&&e<mx)alarm(pr.id,'pre');if(e>=mx)alarm(pr.id,'over'+Math.floor((e-mx)/10));});
+  if(aperti)tieniAcceso();else lasciaSpegnere();if(v==='apt'||v==='oggi')render();},30000);
  sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){S.user=null;S.profile=null;S.view='login';render();}});
 })();
 </script>
