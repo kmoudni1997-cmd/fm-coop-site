@@ -303,7 +303,8 @@ function sblocca(){try{var C=window.AudioContext||window.webkitAudioContext;if(!
 function suona(volte){try{navigator.vibrate&&navigator.vibrate([400,200,400,200,400]);}catch(e){}try{sblocca();if(!AC)return;for(var i=0;i<(volte||3);i++){(function(k){var o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=k%2?660:880;g.gain.value=.12;o.connect(g);g.connect(AC.destination);var t0=AC.currentTime+k*0.45;o.start(t0);o.stop(t0+0.35);})(i);}}catch(e){}}
 async function tieniAcceso(){try{if('wakeLock' in navigator&&!WL){WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',function(){WL=null;});}}catch(e){}}
 function lasciaSpegnere(){try{if(WL){WL.release();WL=null;}}catch(e){}}
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&S.program&&S.program.some(function(pr){var q=passOf(pr);return q&&!q.closed_at;}))tieniAcceso();});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible')return;if(S.program&&S.program.some(function(pr){var q=passOf(pr);return q&&!q.closed_at;}))tieniAcceso();
+ if(S.user&&S.profile&&!isBoss()&&!isClient()&&S.view==='oggi'&&!S.busy&&Date.now()-(S._lastLoad||0)>60000)loadDay().then(render).catch(function(){});});
 function alarm(id,tipo){var k=id+':'+tipo;if(beeped[k])return;beeped[k]=true;suona(tipo==='pre'?2:4);
  toast(tipo==='pre'?'⏳ Mancano 10 minuti al tempo massimo':'⏰ Tempo massimo superato: chiudi il passaggio o avvisa il responsabile');}
 function go(v){S.view=v;S.err='';S.askStart=null;render();window.scrollTo(0,0);}
@@ -317,7 +318,7 @@ async function autoStop(pr,p){if(!p||p.closed_at||p.fermato_at||!p.started_at)re
  var r=await sb.from('passaggi').update({fermato_at:new Date(scadenza(pr,p)).toISOString(),over_by_min:MARGINE_STOP}).eq('id',p.id).is('fermato_at',null).select().maybeSingle();
  if(r.error||!r.data)return p;S.passaggi[pr.id]=r.data;toast('Tempo scaduto: il timer è fermo. Finisci le foto e chiudi il passaggio');return r.data;}
 async function loadDay(){
- var d=S.actDay||todayStr();
+ var d=S.actDay||todayStr();S._lastLoad=Date.now();
  var pr=await sb.from('program').select('*, apartments(*)').eq('user_id',S.actAs?S.actAs.id:S.user.id).eq('day',d).order('ord');if(pr.error)throw pr.error;S.program=pr.data||[];
  var work=S.program.filter(function(x){return x.apt_id&&x.kind==='lavoro'});
  var ids=work.map(function(x){return x.id});
@@ -1109,9 +1110,12 @@ app.addEventListener('change',async function(e){
  try{var s=await sb.auth.getSession();if(s.data&&s.data.session){S.user=s.data.session.user;await afterLogin();}else{S.view='login';}}
  catch(e){S.view='login';S.err='Connessione non riuscita, riprova.';console.error(e);}
  render();
- setInterval(function(){if(!S.user||!S.profile||isBoss()||isClient())return;var v=S.view,aperti=0;S.program.forEach(function(pr){var q=passOf(pr);if(!pr.apt_id||!q||q.closed_at)return;if(!q.fermato_at&&Date.now()>=scadenza(pr,q)){autoStop(pr,q).then(function(){render();});return;}if(q.fermato_at)return;aperti++;var e=elapsedMin(q),mx=(pr.apartments&&pr.apartments.max_min)||90;
+ setInterval(function(){if(!S.user||!S.profile||isBoss()||isClient())return;var v=S.view,aperti=0;S.program.forEach(function(pr){var q=passOf(pr);if(!pr.apt_id||!q||q.closed_at)return;if(!q.fermato_at&&Date.now()>=scadenza(pr,q)){autoStop(pr,q).then(function(){render();});return;}if(q.fermato_at)return;aperti++;var e=elapsedMin(q),mx=maxOf(pr,q);
   if(e>=mx-10&&e<mx)alarm(pr.id,'pre');if(e>=mx)alarm(pr.id,'over'+Math.floor((e-mx)/10));});
-  if(aperti)tieniAcceso();else lasciaSpegnere();if(v==='apt'||v==='oggi')render();},30000);
+  if(aperti)tieniAcceso();else lasciaSpegnere();
+  // il programma può cambiare (calendario, responsabile): sulla pagina Oggi lo ricarico ogni 5 minuti
+  if(v==='oggi'&&!S.busy&&!S.actAs&&Date.now()-(S._lastLoad||0)>300000){loadDay().then(render).catch(function(){});return;}
+  if(v==='apt'||v==='oggi')render();},30000);
  sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){S.user=null;S.profile=null;S.view='login';render();}});
 })();
 </script>
