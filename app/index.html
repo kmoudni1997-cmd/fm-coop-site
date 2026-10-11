@@ -1007,8 +1007,7 @@ app.addEventListener('click',async function(e){
   if(avvisiSi()){try{localStorage.setItem('fm_avvisi','0');}catch(e){}fermaAvvisi();await disiscriviPush();render();toast('Notifiche spente su questo dispositivo');return;}
   if(suIOSsenzaHome()){toast('Su iPhone: tocca Condividi › «Aggiungi alla schermata Home», apri l’app da lì e poi tocca di nuovo la campanella');return;}
   var perm=await Notification.requestPermission();if(perm!=='granted'){toast('Notifiche bloccate: attivale nelle impostazioni del browser per fm-coop.com');return;}
-  try{localStorage.setItem('fm_avvisi','1');}catch(e){}avviaAvvisi();var okp=await iscriviPush();render();notifica('🔔 Notifiche attive',okp?'Ti arrivano anche con l’app chiusa: entrate, chiusure e segnalazioni.':'Ti arrivano solo con l’app aperta.','prova');alert(okp?'✅ Notifiche attivate su questo dispositivo, anche ad app chiusa.':'⚠️ Notifiche ad app chiusa NON attivate su questo dispositivo.
-Motivo: '+(AVV.err||'sconosciuto'));return;}
+  try{localStorage.setItem('fm_avvisi','1');}catch(e){}avviaAvvisi();var okp=await iscriviPush();render();notifica('🔔 Notifiche attive',okp?'Ti arrivano anche con l’app chiusa: entrate, chiusure e segnalazioni.':'Ti arrivano solo con l’app aperta.','prova');alert(okp?'✅ Notifiche attivate su questo dispositivo, anche ad app chiusa.':'⚠️ Notifiche ad app chiusa NON attivate su questo dispositivo. Motivo: '+(AVV.err||'sconosciuto'));return;}
  if(d.reload){await refresh();return;}
  if(d.sdel!==undefined){(S._sfiles||[]).splice(Number(d.sdel),1);sRedraw();return;}
  if(d.cedit){S.cl.edit=Number(d.cedit);render();var tx=document.getElementById('cc_'+d.cedit);if(tx)tx.focus();return;}
