@@ -701,9 +701,14 @@ function meseRange(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));var a=n
 function meseNome(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));return new Date(y,mm-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'});}
 async function loadConti(){var B=S.boss;B.cm=B.cm||meseDi(todayStr());var r=meseRange(B.cm);B.contiLoading=true;
  var ps=await sb.from('passaggi').select('id,day,closed_at,apt_id,program_id,program(guests),apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('closed_at','is',null).order('day');if(ps.error)throw ps.error;
- var pr=await sb.from('program').select('id,day,apt_id,apartments(name,client,zone,size)').gte('day',r[0]).lte('day',r[1]).eq('kind','lavoro');if(pr.error)throw pr.error;
+ var pr=await sb.from('program').select('id,day,apt_id,guests,apartments(name,client,zone,size)').gte('day',r[0]).lte('day',r[1]).eq('kind','lavoro');if(pr.error)throw pr.error;
  var ex=await sb.from('extra_clienti').select('*, apartments(name)').gte('day',r[0]).lte('day',r[1]).order('day');if(ex.error)throw ex.error;
- B.conti={pass:ps.data||[],prog:pr.data||[],extra:ex.data||[]};B.contiLoading=false;}
+ // lavori confermati sul gruppo WhatsApp «FM programma» (lavori_manuali): contano come chiusi anche se nell'app non lo sono
+ var lm=await sb.from('lavori_manuali').select('day,apt_id,apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('apt_id','is',null);if(lm.error)throw lm.error;
+ var pass=ps.data||[],gia={};pass.forEach(function(x){gia[x.day+'|'+x.apt_id]=1});
+ (lm.data||[]).forEach(function(m){var k=m.day+'|'+m.apt_id;if(gia[k])return;gia[k]=1;var g=(pr.data||[]).filter(function(x){return x.day===m.day&&x.apt_id===m.apt_id&&x.guests})[0];pass.push({day:m.day,apt_id:m.apt_id,apartments:m.apartments,program:{guests:g?g.guests:null},chat:true});});
+ pass.sort(function(a,b){return a.day<b.day?-1:a.day>b.day?1:0});
+ B.conti={pass:pass,prog:pr.data||[],extra:ex.data||[]};B.contiLoading=false;}
 function contoCliente(B,cl){var R=REGOLE_CONTI[cl]||{},visti={},righe=[],tot=0,manca=0;
  (B.conti.pass||[]).forEach(function(p){var a=p.apartments||{};if(a.client!==cl)return;var k=p.day+'|'+p.apt_id;if(visti[k])return;visti[k]=1;
   var c=(B.costi||{})[p.apt_id]||{},prezzo=c.prezzo_cliente!=null?Number(c.prezzo_cliente):null;if(prezzo==null&&isServ(a)){delete visti[k];return;}if(prezzo==null)manca++;
@@ -731,7 +736,7 @@ function vConti(B){var cm=B.cm||meseDi(todayStr());
  var h='<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><div class="agh" style="margin:0"><button data-cmese="-1">‹</button><h2 style="margin:0;text-transform:capitalize">'+meseNome(cm)+'</h2><button data-cmese="1">›</button></div>';
  if(!B.conti){if(!B.contiLoading)loadConti().then(render).catch(fail);return h+'</div><div class="card"><span class="spin"></span> carico i passaggi del mese…</div>';}
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.client&&a.active&&clienti.indexOf(a.client)<0)clienti.push(a.client)});clienti.sort();var cl=B.ccl&&clienti.indexOf(B.ccl)>=0?B.ccl:(clienti.indexOf('Immobili e Soluzioni')>=0?'Immobili e Soluzioni':clienti[0]);B.ccl=cl;
- h+='<select data-ccl="1" style="width:auto;padding:6px">'+clienti.map(function(c){return '<option '+(c===cl?'selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select><button class="mini" data-ccsv="1">Scarica Excel</button></div><p class="note" style="margin:8px 0 0">Si riempie da solo: un appartamento entra appena l’operatrice chiude il passaggio. '+esc(contoCliente(B,cl).nota)+'</p></div>';
+ h+='<select data-ccl="1" style="width:auto;padding:6px">'+clienti.map(function(c){return '<option '+(c===cl?'selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select><button class="mini" data-ccsv="1">Scarica Excel</button></div><p class="note" style="margin:8px 0 0">Si riempie da solo: un appartamento entra appena l’operatrice chiude il passaggio, oppure se è confermato sul gruppo WhatsApp «FM programma». '+esc(contoCliente(B,cl).nota)+'</p></div>';
  var K=contoCliente(B,cl);
  h+='<div class="stat"><div><b>'+K.righe.length+'</b><span>passaggi chiusi</span></div><div><b>'+eur(K.totale)+'</b><span>totale finora</span></div><div><b>'+K.prev+'</b><span>ancora in programma (≈ '+eur(K.prevEur)+')</span></div>'+(K.nonChiusi.length?'<div><b style="color:var(--bad)">'+K.nonChiusi.length+'</b><span>passati ma non chiusi nell’app</span></div>':'')+'</div>';
  if(K.manca)h+='<p class="warnbox">⚠ '+K.manca+' passaggi senza prezzo: mettilo in Gestione › Appartamenti › Mostra costi.</p>';
