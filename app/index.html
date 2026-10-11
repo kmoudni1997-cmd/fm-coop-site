@@ -12,6 +12,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png?v=2">
 <link rel="icon" type="image/png" sizes="192x192" href="../assets/favicon-192.png?v=2">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png?v=2">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
 :root{--bg:#f4f5f7;--card:#ffffff;--ink:#16181b;--mute:#666d74;--line:#e2e4e7;--nero:#111214;--nero-ink:#ffffff;--acc:#e0a63a;--ok:#2e8b57;--ok-bg:#e6f4ec;--warn:#c98a00;--warn-bg:#fff4dc;--bad:#c0392b;--bad-bg:#fdecea;--grey:#b9c0c7;--tap:#eef0f3;--blue:#2f6fb5;--blue-bg:#e8f0fa;--viola:#7a4fb5;--viola-bg:#f0e9fa}
@@ -553,7 +554,7 @@ function vClient(){var C=S.cl,body='',title='';
  } else {title='Appartamenti';var done=C.rows.filter(function(x){var p=C.pass[x.id];return p&&p.closed_at}).length;
   body='<div class="agh"><button data-cnav="-1">‹</button><h1>'+(C.date===todayStr()?'Oggi, '+dlong(C.date):dlong(C.date))+'</h1><button data-cnav="1">›</button><button data-cnav="0">Oggi</button></div>'+
    (C.rows.length?'<div class="row"><span class="pill '+(done===C.rows.length?'ok':'grey')+'">'+done+' di '+C.rows.length+' finiti</span></div>'+C.rows.map(function(pr){var a=pr.apartments,st=clStato(C.pass[pr.id]);return '<button class="apt" data-cdet="'+pr.id+'"><span class="dot '+(st[0]==='ok'?'done':st[0]==='warn'?'doing':'todo')+'"></span><span><span class="n">'+esc(a.name)+'</span><br><span class="s">'+esc(a.address||'')+(pr.guests?' · '+pr.guests+' ospiti':'')+'</span></span><span class="t">'+st[1]+'</span></button>'}).join(''):'<div class="card">Nessuna pulizia in programma in questo giorno.</div>');}
- return topbar(title,null,'<button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button>')+shellWith(CL_NAV,C.tab,'ctab',body,'narrow');
+ return topbar(title,null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?'🔔':'🔕')+'</button><button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button>')+shellWith(CL_NAV,C.tab,'ctab',body,'narrow');
 }
 // ===== LAYOUT =====
 function topbar(title,left,right){return '<div class="top">'+(left||'<img class="brand" src="../assets/fm-mark-bianco.png?v=2" alt="FM Coop">')+'<b>'+title+'</b>'+(right||'')+'</div>';}
@@ -879,7 +880,7 @@ function vBoss(){
    '<div><div class="card"><h2>Foto '+(p&&B.photos[p.id]?B.photos[p.id].length+'/'+fotoDi(pr,p).length:'')+'</h2>'+(!p?'<p class="note">Il passaggio non è ancora iniziato.</p>':(B.photos[p.id]?(B.photos[p.id].length?'<div class="thumbs big">'+B.photos[p.id].map(function(u){return '<a href="'+u.url+'" target="_blank">'+(isVidPath(u.path)?'<video src="'+u.url+'" controls playsinline preload="metadata" style="width:100%;border-radius:10px;background:#000"></video>':'<img src="'+u.url+'" alt="'+esc(u.kind)+'">')+'<span>'+esc(u.kind)+'</span></a>'}).join('')+'</div>':'<p class="note">Nessuna foto caricata.</p>'):'<p class="note"><span class="spin"></span> carico le foto…</p>'))+'</div></div></div>';
   if(p&&!B.loadingPhotos&&(!B.photos[p.id]||(!p.closed_at&&Date.now()-((B.photosAt||{})[p.id]||0)>30000)))loadPhotos(p.id);
   B.per=B.per||{};if(p&&!B.per[p.id]&&!B.loadingPer){B.loadingPer=true;loadPeriodici(p.id,B.per).then(function(){B.loadingPer=false;render();});}
-  return topbar(title,null,'<button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button>')+shellBoss('oggi',body);}}
+  return topbar(title,null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?'🔔':'🔕')+'</button><button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button>')+shellBoss('oggi',body);}}
  if(tab==='oggi'){title='Oggi';
   var offs=B.program.filter(function(pr){return pr.kind!=='lavoro'});
   body='<div class="row" style="justify-content:space-between"><h1>'+(B.date===todayStr()?'Oggi, '+dlong(B.date):dlong(B.date))+'</h1><input type="date" id="bdate" value="'+B.date+'" style="width:auto;padding:8px 10px;font-size:14px"></div><div class="stat"><div><b>'+closed+'/'+work.length+'</b><span>passaggi chiusi</span></div><div><b style="'+(over?'color:var(--bad)':'')+'">'+over+'</b><span>oltre il tempo</span></div><div><b>'+Object.keys(spesa).length+'</b><span>prodotti da comprare</span></div><div><b>'+B.segn.length+'</b><span>segnalazioni aperte</span></div>'+(isAdmin()?(function(){var tot=0,nc=0;work.forEach(function(pr){var k=costoPass(pr,byProg[pr.id]);if(k&&k.chiuso){tot+=k.costo;nc++;}});return '<div><b>'+eur(tot)+'</b><span>costo personale ('+nc+' chiusi) · solo admin</span></div>';})():'')+'</div>'+
@@ -911,7 +912,7 @@ function vBoss(){
  if(tab==='utenti'){title='Utenti';body='<h1>Utenti</h1><div class="two"><div class="card" style="display:flex;flex-direction:column;gap:10px"><h2>Nuovo utente</h2><input type="text" id="nu_name" placeholder="Nome e cognome" autocomplete="off"><input type="text" id="nu_user" placeholder="Nome utente per entrare (es. badiaa)" autocapitalize="none" autocomplete="off"><input type="text" id="nu_pin" inputmode="numeric" placeholder="PIN di 6 cifre" maxlength="6" autocomplete="off"><select id="nu_role"><option value="op">Operatrice / operatore</option><option value="boss">Responsabile</option><option value="client">Cliente (vede solo i suoi appartamenti)</option></select><button class="btn" id="nu_save" '+(S.busy?'disabled':'')+'>Crea utente</button><p class="note">Entra con nome utente + PIN. Nessuna email da ricordare. Se dai il PIN provvisorio 000000, al primo accesso l’app obbliga a sceglierne uno nuovo.</p></div>'+
   (function(){var have={};B.ops.forEach(function(o){have[o.username]=1});var da=DIPENDENTI.filter(function(d){return !have[d[0]]});if(!da.length)return '';return '<div class="card list"><button class="grp '+(B.showDa?'on':'')+'" data-showda="1" style="margin:-4px -4px 0"><b>Da creare</b><span class="note">'+da.length+' dipendenti di NEXUS non ancora nell’app</span><span class="ic">'+(B.showDa?'▾':'▸')+'</span></button>'+(B.showDa?'<p class="note">Un clic crea l’utente con PIN provvisorio <b>000000</b>: al primo accesso sceglie il suo.</p>':'')+(B.showDa?da:[]).map(function(d){return '<div class="it"><span><b>'+esc(d[1])+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(d[0])+' · '+esc(d[2])+'</span></span><span class="row" style="gap:6px"><select class="mini" id="qr_'+d[0]+'" style="padding:6px"><option value="op">operatrice/op.</option><option value="boss">responsabile</option></select><button class="mini on" data-quick="'+d[0]+'" data-qname="'+esc(d[1])+'" '+(S.busy?'disabled':'')+'>Crea con 000000</button></span></div>'}).join('')+'</div>';})()+
   (function(){var rowU=function(o){return '<div class="it"><span><b>'+esc(o.name)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(o.username)+' · '+(o.role==='boss'?'responsabile':o.role==='admin'?'amministrazione':o.role==='client'?'cliente':'operatrice')+(o.role==='client'?' · <select data-clset="'+o.id+'" style="padding:4px;font-size:13px"><option value="">— scegli il cliente —</option>'+(function(){var cs=[];B.apts.forEach(function(a){if(a.client&&cs.indexOf(a.client)<0)cs.push(a.client)});cs.sort();return cs.map(function(c){return '<option '+(o.client===c?'selected':'')+'>'+esc(c)+'</option>'}).join('')})()+'</select>':'')+'</span></span><span class="row" style="gap:6px">'+(o.id===S.user.id?'<span class="pill grey">tu</span>':'<button class="mini" data-newpin="'+o.id+'">PIN</button><button class="mini '+(o.active?'':'on')+'" data-toggle="'+o.id+'" data-active="'+(o.active?1:0)+'">'+(o.active?'Attivo':'Off')+'</button>')+'</span></div>'+(S.pinFor===o.id?'<div class="row" style="padding:6px 0 10px;gap:8px"><input type="text" id="np_pin" inputmode="numeric" placeholder="Nuovo PIN (6 cifre)" maxlength="6" style="padding:10px"><button class="mini" data-savepin="'+o.id+'">Salva</button></div>':'');};var G=[['Amministrazione e responsabili',function(o){return o.role==='admin'||o.role==='boss'}],['Operatrici e operatori',function(o){return o.role==='op'}],['Clienti',function(o){return o.role==='client'}]];return G.map(function(g){var L=B.ops.filter(g[1]).sort(function(x,y){return (y.active-x.active)||x.name.localeCompare(y.name)});return '<div class="card list"><h2>'+g[0]+' <span class="note">'+L.length+'</span></h2>'+(L.length?L.map(rowU).join(''):'<p class="note">Nessuno.</p>')+'</div>'}).join('');})()+'</div>';}
- return topbar(title+' · '+esc(S.profile.name),null,'<button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button>')+shellBoss(tab,body,tab==='gest'?'wide':'');
+ return topbar(title+' · '+esc(S.profile.name),null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?'🔔':'🔕')+'</button><button data-reload="1" title="Aggiorna">↻</button><button data-logout="1">Esci</button>')+shellBoss(tab,body,tab==='gest'?'wide':'');
 }
 function render(){
  var v=S.view,h;
@@ -944,11 +945,29 @@ async function nuovoPin(){
  try{var r=await sb.auth.updateUser({password:S.pin1});if(r.error)throw r.error;S.pin='';S.pin1='';S.busy=false;await afterLogin();render();toast('PIN salvato: da adesso entri con quello');}
  catch(e){S.busy=false;S.err='Errore: '+e.message;S.pin='';S.pin1='';render();}
 }
+// ===== NOTIFICHE per i responsabili (11/10/2026) =====
+var AVV={canale:null,chiusi:{},pronto:false};
+function avvisiSi(){try{return localStorage.getItem('fm_avvisi')==='1'&&'Notification' in window&&Notification.permission==='granted';}catch(e){return false;}}
+function nomeOp(uid){var o=(S.boss.ops||[]).filter(function(x){return x.id===uid})[0];if(!o)return 'Qualcuno';var u=o.username||o.name||'';return u.charAt(0).toUpperCase()+u.slice(1);}
+function nomeApt(id){var a=(S.boss.apts||[]).filter(function(x){return x.id===id})[0];return a?a.name:'un appartamento';}
+async function notifica(titolo,testo,tag){try{var reg=('serviceWorker' in navigator)?await navigator.serviceWorker.getRegistration():null;var o={body:testo,tag:tag,icon:'../assets/favicon-192.png?v=2',badge:'../assets/favicon-192.png?v=2'};
+ if(reg&&reg.showNotification)await reg.showNotification(titolo,o);else new Notification(titolo,o);}catch(e){console.error(e);}}
+function avviaAvvisi(){if(AVV.canale||!isBoss()||!avvisiSi())return;AVV.pronto=Date.now();
+ var aggiorna=function(){if(S.view==='boss'&&!S.actAs&&!S.busy)loadBoss().then(render).catch(function(){});};
+ AVV.canale=sb.channel('avvisi-responsabili')
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'passaggi'},function(m){var p=m.new;if(!p.started_at)return;notifica('🟢 '+nomeOp(p.user_id)+' è entrata',nomeApt(p.apt_id)+' · '+hm(p.started_at),'in'+p.id);aggiorna();})
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'passaggi'},function(m){var p=m.new;if(!p.closed_at||AVV.chiusi[p.id])return;if(Date.now()-new Date(p.closed_at).getTime()>180000)return;AVV.chiusi[p.id]=1;
+   var a=(S.boss.apts||[]).filter(function(x){return x.id===p.apt_id})[0]||{},mx=(a.max_min||90)+(p.extra_min||0),d=durMin(p),oltre=d>mx+1;
+   notifica((oltre?'⏰ ':'✅ ')+nomeOp(p.user_id)+' ha chiuso',nomeApt(p.apt_id)+' · '+fmt(d)+(oltre?' (massimo '+fmt(mx)+')':''),'out'+p.id);aggiorna();})
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'segnalazioni'},function(m){var x=m.new;notifica('📸 Segnalazione da '+nomeOp(x.user_id),nomeApt(x.apt_id)+' — '+(x.type||'')+(x.text?': '+x.text:''),'sg'+x.id);aggiorna();})
+  .subscribe();}
+function fermaAvvisi(){if(AVV.canale){sb.removeChannel(AVV.canale);AVV.canale=null;}}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error(e);});}
 async function afterLogin(){
  await loadProfile();
  if(!S.profile.active){await sb.auth.signOut();S.user=null;S.profile=null;S.err='Utente disattivato. Parla con il responsabile.';S.view='login';return;}
  if(isClient()){S.view='client';S.cl={date:todayStr(),tab:'oggi',det:null,photos:{}};await loadClient();}
- else if(isBoss()){S.view='boss';S.boss.tab='oggi';await loadBoss();}else{S.view='oggi';await loadDay();}
+ else if(isBoss()){S.view='boss';S.boss.tab='oggi';await loadBoss();avviaAvvisi();}else{S.view='oggi';await loadDay();}
 }
 async function refresh(){try{if(isClient()){await loadClient();}else if(isBoss()&&!S.actAs){S.boss.photos={};S.boss.per={};await loadBoss();if(S.boss.tab==='agenda')await loadAgenda();}else{await loadDay();if(S.view==='agenda')await loadAgenda();}render();toast('Aggiornato');}catch(e){fail(e);}}
 function tryPin(){var u=(S.lu||'').trim();if(!u){S.err='Scrivi il tuo nome utente';render();return;}if(S.pin.length<6){S.err='PIN di 6 cifre';render();return;}login(u,S.pin);}
@@ -976,6 +995,10 @@ app.addEventListener('click',async function(e){
  try{
  if(d.k){tastoPin(d.k);return;}
  if(d.logout){await sb.auth.signOut();S.user=null;S.profile=null;S.actAs=null;S.actDay=null;go('login');return;}
+ if(d.avvisi){if(!('Notification' in window)){toast('Questo browser non supporta le notifiche');return;}
+  if(avvisiSi()){try{localStorage.setItem('fm_avvisi','0');}catch(e){}fermaAvvisi();render();toast('Notifiche spente su questo dispositivo');return;}
+  var perm=await Notification.requestPermission();if(perm!=='granted'){toast('Notifiche bloccate: attivale nelle impostazioni del browser per fm-coop.com');return;}
+  try{localStorage.setItem('fm_avvisi','1');}catch(e){}avviaAvvisi();render();notifica('🔔 Notifiche attive','Ti avviso quando un’operatrice entra, chiude o manda una segnalazione.','prova');return;}
  if(d.reload){await refresh();return;}
  if(d.sdel!==undefined){(S._sfiles||[]).splice(Number(d.sdel),1);sRedraw();return;}
  if(d.cedit){S.cl.edit=Number(d.cedit);render();var tx=document.getElementById('cc_'+d.cedit);if(tx)tx.focus();return;}
@@ -1116,7 +1139,7 @@ app.addEventListener('change',async function(e){
   // il programma può cambiare (calendario, responsabile): sulla pagina Oggi lo ricarico ogni 5 minuti
   if(v==='oggi'&&!S.busy&&!S.actAs&&Date.now()-(S._lastLoad||0)>300000){loadDay().then(render).catch(function(){});return;}
   if(v==='apt'||v==='oggi')render();},30000);
- sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){S.user=null;S.profile=null;S.view='login';render();}});
+ sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){fermaAvvisi();S.user=null;S.profile=null;S.view='login';render();}});
 })();
 </script>
 </body>
