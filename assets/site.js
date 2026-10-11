@@ -195,3 +195,31 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
+
+/* ── Filtri della galleria (pagina affitti brevi) ── */
+document.addEventListener("DOMContentLoaded", function () {
+  var bottoni = document.querySelectorAll("[data-filtro]");
+  if (!bottoni.length) return;
+  bottoni.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var cat = b.getAttribute("data-filtro");
+      bottoni.forEach(function (x) { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      document.querySelectorAll(".galleria [data-cat]").forEach(function (fig) {
+        fig.style.display = (cat === "tutti" || fig.getAttribute("data-cat") === cat) ? "" : "none";
+      });
+    });
+  });
+});
+
+/* ── Video della home: niente video con connessione lenta o «risparmio dati» (resta la foto) ── */
+(function () {
+  var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!c || !(c.saveData || /(^|-)2g$/.test(c.effectiveType || ""))) return;
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("video.hero-fondo").forEach(function (v) {
+      v.removeAttribute("autoplay"); v.pause();
+      v.querySelectorAll("source").forEach(function (s) { s.remove(); });
+      v.load();
+    });
+  });
+})();

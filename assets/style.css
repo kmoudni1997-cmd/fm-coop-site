@@ -1543,3 +1543,12 @@ form select:focus{outline:0;border-color:var(--nero);box-shadow:0 0 0 3px rgba(1
 .g-item{position:relative}
 .g-item figcaption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:22px 12px 10px;font-size:.78rem;line-height:1.3;color:#fff;
   background:linear-gradient(180deg,transparent,rgba(9,10,11,.78));pointer-events:none}
+
+.vedi-anche{margin-top:22px;font-size:.92rem;color:var(--muted)}
+.vedi-anche a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+
+.filtri-galleria{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.filtri-galleria button{font:inherit;font-size:.88rem;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--nero);cursor:pointer}
+.filtri-galleria button.on{background:var(--nero);color:#fff;border-color:var(--nero)}
+.se-non-va .cambio-lista{grid-template-columns:repeat(4,1fr)}
+@media (max-width:900px){.se-non-va .cambio-lista{grid-template-columns:1fr}}

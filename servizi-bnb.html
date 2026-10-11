@@ -22,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
-<link rel="stylesheet" href="assets/style.css?v=1791740000" />
+<link rel="stylesheet" href="assets/style.css?v=1791750002" />
 </head>
 <body class="pg-bnb" data-wa-msg="Buongiorno, vi contatto dal sito FM Coop: seguo appartamenti in affitto breve e vorrei un preventivo per i cambi ospite.">
 
@@ -169,28 +169,35 @@
       <p class="lead">Cambi, allestimenti e piccole manutenzioni: i lavori che seguiamo negli appartamenti. Immagini illustrative.</p>
     </div>
   </div>
+    <div class="wrap"><div class="filtri-galleria" role="group" aria-label="Filtra i lavori">
+    <button type="button" class="on" data-filtro="tutti">Tutti</button>
+    <button type="button" data-filtro="cambio">Cambio ospite</button>
+    <button type="button" data-filtro="biancheria">Biancheria e consumabili</button>
+    <button type="button" data-filtro="allestimenti">Allestimenti</button>
+    <button type="button" data-filtro="manutenzioni">Manutenzioni</button>
+  </div></div>
   <div class="galleria" data-appare>
-    <figure class="g-item g-tall"><img src="assets/serv-affitti.jpg" alt="Appartamento pronto per l&#39;ospite" loading="lazy" /><figcaption>Appartamento pronto per l&#39;ospite</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-cucina.jpg" alt="Pulizia della cucina al cambio ospite" loading="lazy" /><figcaption>Pulizia della cucina al cambio ospite</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-bagni.jpg" alt="Sanificazione dei bagni" loading="lazy" /><figcaption>Sanificazione dei bagni</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-logistica.jpg" alt="Biancheria consegnata e cambiata" loading="lazy" /><figcaption>Biancheria consegnata e cambiata</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-divani.jpg" alt="Pulizia profonda di divani e imbottiti" loading="lazy" /><figcaption>Pulizia profonda di divani e imbottiti</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-materassi.jpg" alt="Igienizzazione profonda dei materassi" loading="lazy" /><figcaption>Igienizzazione profonda dei materassi</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-consumabili.jpg" alt="Rifornimento dei consumabili" loading="lazy" /><figcaption>Rifornimento dei consumabili</figcaption></figure>
-    <figure class="g-item g-tall"><img src="assets/serv-allestimento.jpg" alt="Allestimento appartamento e key box" loading="lazy" /><figcaption>Allestimento appartamento e key box</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-montaggio.jpg" alt="Montaggio degli arredi" loading="lazy" /><figcaption>Montaggio degli arredi</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-armadio.jpg" alt="Montaggio e regolazione dell&#39;armadio" loading="lazy" /><figcaption>Montaggio e regolazione dell&#39;armadio</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-tende.jpg" alt="Montaggio di tende e complementi" loading="lazy" /><figcaption>Montaggio di tende e complementi</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-tv.jpg" alt="Montaggio della TV a parete" loading="lazy" /><figcaption>Montaggio della TV a parete</figcaption></figure>
-    <figure class="g-item g-wide"><img src="assets/serv-illum-interna.jpg" alt="Illuminazione interna: coordinamento con tecnico abilitato" loading="lazy" /><figcaption>Illuminazione interna: coordinamento con tecnico abilitato</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-lavastoviglie.jpg" alt="Lavastoviglie: installazione coordinata con tecnico abilitato" loading="lazy" /><figcaption>Lavastoviglie: installazione coordinata con tecnico abilitato</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-lavello.jpg" alt="Lavello e allacci: coordinamento con tecnico abilitato" loading="lazy" /><figcaption>Lavello e allacci: coordinamento con tecnico abilitato</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-specchio.jpg" alt="Installazione dello specchio del bagno" loading="lazy" /><figcaption>Installazione dello specchio del bagno</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-doccino.jpg" alt="Sostituzione del doccino" loading="lazy" /><figcaption>Sostituzione del doccino</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-silicone.jpg" alt="Ripristino del silicone della doccia" loading="lazy" /><figcaption>Ripristino del silicone della doccia</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-clima.jpg" alt="Manutenzione dei filtri del climatizzatore" loading="lazy" /><figcaption>Manutenzione dei filtri del climatizzatore</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-terrazzi.jpg" alt="Pulizia di terrazzi e balconi" loading="lazy" /><figcaption>Pulizia di terrazzi e balconi</figcaption></figure>
-    <figure class="g-item"><img src="assets/serv-fine-lavori.jpg" alt="Pulizia di fine lavori" loading="lazy" /><figcaption>Pulizia di fine lavori</figcaption></figure>
+    <figure class="g-item g-tall" data-cat="cambio"><img src="assets/serv-affitti.jpg" alt="Appartamento pronto per l&#39;ospite" loading="lazy" /><figcaption>Appartamento pronto per l&#39;ospite</figcaption></figure>
+    <figure class="g-item" data-cat="cambio"><img src="assets/serv-cucina.jpg" alt="Pulizia della cucina al cambio ospite" loading="lazy" /><figcaption>Pulizia della cucina al cambio ospite</figcaption></figure>
+    <figure class="g-item" data-cat="cambio"><img src="assets/serv-bagni.jpg" alt="Sanificazione dei bagni" loading="lazy" /><figcaption>Sanificazione dei bagni</figcaption></figure>
+    <figure class="g-item" data-cat="biancheria"><img src="assets/serv-logistica.jpg" alt="Biancheria consegnata e cambiata" loading="lazy" /><figcaption>Biancheria consegnata e cambiata</figcaption></figure>
+    <figure class="g-item" data-cat="cambio"><img src="assets/serv-divani.jpg" alt="Pulizia profonda di divani e imbottiti" loading="lazy" /><figcaption>Pulizia profonda di divani e imbottiti</figcaption></figure>
+    <figure class="g-item" data-cat="cambio"><img src="assets/serv-materassi.jpg" alt="Igienizzazione profonda dei materassi" loading="lazy" /><figcaption>Igienizzazione profonda dei materassi</figcaption></figure>
+    <figure class="g-item" data-cat="biancheria"><img src="assets/serv-consumabili.jpg" alt="Rifornimento dei consumabili" loading="lazy" /><figcaption>Rifornimento dei consumabili</figcaption></figure>
+    <figure class="g-item g-tall" data-cat="allestimenti"><img src="assets/serv-allestimento.jpg" alt="Allestimento appartamento e key box" loading="lazy" /><figcaption>Allestimento appartamento e key box</figcaption></figure>
+    <figure class="g-item" data-cat="allestimenti"><img src="assets/serv-montaggio.jpg" alt="Montaggio degli arredi" loading="lazy" /><figcaption>Montaggio degli arredi</figcaption></figure>
+    <figure class="g-item" data-cat="allestimenti"><img src="assets/serv-armadio.jpg" alt="Montaggio e regolazione dell&#39;armadio" loading="lazy" /><figcaption>Montaggio e regolazione dell&#39;armadio</figcaption></figure>
+    <figure class="g-item" data-cat="allestimenti"><img src="assets/serv-tende.jpg" alt="Montaggio di tende e complementi" loading="lazy" /><figcaption>Montaggio di tende e complementi</figcaption></figure>
+    <figure class="g-item" data-cat="allestimenti"><img src="assets/serv-tv.jpg" alt="Montaggio della TV a parete" loading="lazy" /><figcaption>Montaggio della TV a parete</figcaption></figure>
+    <figure class="g-item g-wide" data-cat="allestimenti"><img src="assets/serv-illum-interna.jpg" alt="Illuminazione interna: coordinamento con tecnico abilitato" loading="lazy" /><figcaption>Illuminazione interna: coordinamento con tecnico abilitato</figcaption></figure>
+    <figure class="g-item" data-cat="allestimenti"><img src="assets/serv-lavastoviglie.jpg" alt="Lavastoviglie: installazione coordinata con tecnico abilitato" loading="lazy" /><figcaption>Lavastoviglie: installazione coordinata con tecnico abilitato</figcaption></figure>
+    <figure class="g-item" data-cat="allestimenti"><img src="assets/serv-lavello.jpg" alt="Lavello e allacci: coordinamento con tecnico abilitato" loading="lazy" /><figcaption>Lavello e allacci: coordinamento con tecnico abilitato</figcaption></figure>
+    <figure class="g-item" data-cat="allestimenti"><img src="assets/serv-specchio.jpg" alt="Installazione dello specchio del bagno" loading="lazy" /><figcaption>Installazione dello specchio del bagno</figcaption></figure>
+    <figure class="g-item" data-cat="manutenzioni"><img src="assets/serv-doccino.jpg" alt="Sostituzione del doccino" loading="lazy" /><figcaption>Sostituzione del doccino</figcaption></figure>
+    <figure class="g-item" data-cat="manutenzioni"><img src="assets/serv-silicone.jpg" alt="Ripristino del silicone della doccia" loading="lazy" /><figcaption>Ripristino del silicone della doccia</figcaption></figure>
+    <figure class="g-item" data-cat="manutenzioni"><img src="assets/serv-clima.jpg" alt="Manutenzione dei filtri del climatizzatore" loading="lazy" /><figcaption>Manutenzione dei filtri del climatizzatore</figcaption></figure>
+    <figure class="g-item" data-cat="cambio"><img src="assets/serv-terrazzi.jpg" alt="Pulizia di terrazzi e balconi" loading="lazy" /><figcaption>Pulizia di terrazzi e balconi</figcaption></figure>
+    <figure class="g-item" data-cat="cambio"><img src="assets/serv-fine-lavori.jpg" alt="Pulizia di fine lavori" loading="lazy" /><figcaption>Pulizia di fine lavori</figcaption></figure>
   </div>
 </section>
 
@@ -204,6 +211,7 @@
       <details><summary>La biancheria la portate voi?</summary><p>Se vuoi s&#236;: set completi forniti, lavati e portati sul posto, contati in base agli ospiti. Se hai gi&#224; la tua biancheria, lavoriamo con quella.</p></details>
       <details><summary>Quanto prima devo avvisarvi di un cambio?</summary><p>Prima &#232; meglio: il giro si prepara la sera prima. Le richieste dell&#39;ultimo minuto le copriamo su richiesta, in base alla squadra disponibile, e ti diciamo subito se ce la facciamo.</p></details>
     </div>
+    <p class="vedi-anche">Vedi anche: <a href="come-lavoriamo.html">Come lavoriamo</a> &#183; <a href="servizi-condomini.html">Condomini e parti comuni</a> &#183; <a href="contatti.html">Richiedi un preventivo</a></p>
   </div>
 </section>
 
@@ -253,7 +261,7 @@
   <svg viewBox="0 0 32 32"><path d="M16 3C9 3 3.5 8.5 3.5 15.5c0 2.3.6 4.4 1.7 6.3L3 29l7.4-2c1.8 1 3.9 1.5 6 1.5 7 0 12.5-5.5 12.5-12.5S23 3 16 3zm0 22.7c-1.9 0-3.7-.5-5.3-1.5l-.4-.2-4.4 1.2 1.2-4.3-.3-.4a10 10 0 0 1-1.6-5.5C5.2 9.6 10 5 16 5s10.8 4.6 10.8 10.5S22 25.7 16 25.7zm5.9-7.8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.5 8.5 0 0 1-4.2-3.7c-.3-.5.3-.5.8-1.6.1-.2 0-.4 0-.6s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4a4 4 0 0 0-1.2 3c0 1.8 1.3 3.5 1.5 3.7.2.3 2.6 4 6.3 5.5 2.3 1 3.2 1.1 4.4.9.7-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4z"/></svg>
 </a>
 
-<script src="assets/site.js?v=1791710003"></script>
+<script src="assets/site.js?v=1791750002"></script>
 <script src="assets/effetti.js?v=1790083367"></script>
 </body>
 </html>
