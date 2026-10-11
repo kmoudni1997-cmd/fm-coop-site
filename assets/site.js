@@ -109,6 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
         var j = await r.json();
         if (j.success) {
           msg.className = "form-msg ok";
+          if (window.fmContaContatto) window.fmContaContatto("modulo");
           msg.textContent = "Grazie! Richiesta inviata: ti ricontattiamo entro 2 ore in orario d'ufficio.";
           form.reset();
         } else {
@@ -222,4 +223,29 @@ document.addEventListener("DOMContentLoaded", function () {
       v.load();
     });
   });
+})();
+
+/* ── Conteggio dei contatti dal sito (senza cookie, senza dati personali) ──
+   Registra solo: tipo di contatto (whatsapp, telefono, email, modulo), pagina e ora.
+   Niente identificativi del visitatore. Serve a capire quali pagine portano richieste. */
+(function () {
+  var URL_EV = "https://kaectlvryylrqmtuzgro.supabase.co/rest/v1/sito_eventi";
+  var KEY_EV = "sb_publishable_Uv32SJlHq4ZnJact0kNNSg_Jv3QtmXS";
+  function invia(tipo) {
+    try {
+      var pagina = (location.pathname.split("/").pop() || "index.html").slice(0, 80);
+      fetch(URL_EV, { method: "POST", keepalive: true,
+        headers: { "apikey": KEY_EV, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({ tipo: tipo, pagina: pagina }) }).catch(function () {});
+    } catch (e) {}
+  }
+  window.fmContaContatto = invia;
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a");
+    if (!a) return;
+    var h = a.getAttribute("href") || "";
+    if (a.hasAttribute("data-wa") || /wa\.me|whatsapp/.test(a.href || "")) invia("whatsapp");
+    else if (a.hasAttribute("data-tel") || /^tel:/.test(a.href || "")) invia("telefono");
+    else if (/^mailto:/.test(a.href || h)) invia("email");
+  }, true);
 })();
