@@ -946,13 +946,21 @@ async function nuovoPin(){
  catch(e){S.busy=false;S.err='Errore: '+e.message;S.pin='';S.pin1='';render();}
 }
 // ===== NOTIFICHE per i responsabili (11/10/2026) =====
-var AVV={canale:null,chiusi:{},pronto:false};
+var AVV={canale:null,chiusi:{},pronto:false,push:false};
+var VAPID_PUB='BMBW1vMbIhVq89zK3wgStEYQAU42QwVKGODHikzyhNS7Aub2Ul24TALVA2YEj49Wjj934DexZB494UDoOaIpsRI';
+function b64uBytes(b){var p='='.repeat((4-b.length%4)%4),r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/')),o=new Uint8Array(r.length);for(var i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o;}
+function suIOSsenzaHome(){var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);var st=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);return ios&&!st;}
+// iscrive questo dispositivo alle notifiche push (arrivano anche ad app chiusa); salva l'iscrizione in push_subscriptions
+async function iscriviPush(){try{if(!('serviceWorker' in navigator)||!('PushManager' in window))return false;var reg=await navigator.serviceWorker.ready;var sub=await reg.pushManager.getSubscription();
+ if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uBytes(VAPID_PUB)});var j=sub.toJSON();
+ var r=await sb.from('push_subscriptions').upsert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:navigator.userAgent.slice(0,200)},{onConflict:'endpoint'});if(r.error)throw r.error;AVV.push=true;return true;}catch(e){console.error('push',e);AVV.push=false;return false;}}
+async function disiscriviPush(){try{var reg=await navigator.serviceWorker.ready;var sub=await reg.pushManager.getSubscription();if(sub){await sb.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);await sub.unsubscribe();}}catch(e){console.error(e);}AVV.push=false;}
 function avvisiSi(){try{return localStorage.getItem('fm_avvisi')==='1'&&'Notification' in window&&Notification.permission==='granted';}catch(e){return false;}}
 function nomeOp(uid){var o=(S.boss.ops||[]).filter(function(x){return x.id===uid})[0];if(!o)return 'Qualcuno';var u=o.username||o.name||'';return u.charAt(0).toUpperCase()+u.slice(1);}
 function nomeApt(id){var a=(S.boss.apts||[]).filter(function(x){return x.id===id})[0];return a?a.name:'un appartamento';}
-async function notifica(titolo,testo,tag){try{var reg=('serviceWorker' in navigator)?await navigator.serviceWorker.getRegistration():null;var o={body:testo,tag:tag,icon:'../assets/favicon-192.png?v=2',badge:'../assets/favicon-192.png?v=2'};
+async function notifica(titolo,testo,tag){if(AVV.push&&tag!=='prova'&&tag!=='locale')return;try{var reg=('serviceWorker' in navigator)?await navigator.serviceWorker.getRegistration():null;var o={body:testo,tag:tag,icon:'../assets/favicon-192.png?v=2',badge:'../assets/favicon-192.png?v=2'};
  if(reg&&reg.showNotification)await reg.showNotification(titolo,o);else new Notification(titolo,o);}catch(e){console.error(e);}}
-function avviaAvvisi(){if(AVV.canale||!isBoss()||!avvisiSi())return;AVV.pronto=Date.now();
+function avviaAvvisi(){if(AVV.canale||!isBoss()||!avvisiSi())return;AVV.pronto=Date.now();iscriviPush();
  var aggiorna=function(){if(S.view==='boss'&&!S.actAs&&!S.busy)loadBoss().then(render).catch(function(){});};
  AVV.canale=sb.channel('avvisi-responsabili')
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'passaggi'},function(m){var p=m.new;if(!p.started_at)return;notifica('🟢 '+nomeOp(p.user_id)+' è entrata',nomeApt(p.apt_id)+' · '+hm(p.started_at),'in'+p.id);aggiorna();})
@@ -996,9 +1004,10 @@ app.addEventListener('click',async function(e){
  if(d.k){tastoPin(d.k);return;}
  if(d.logout){await sb.auth.signOut();S.user=null;S.profile=null;S.actAs=null;S.actDay=null;go('login');return;}
  if(d.avvisi){if(!('Notification' in window)){toast('Questo browser non supporta le notifiche');return;}
-  if(avvisiSi()){try{localStorage.setItem('fm_avvisi','0');}catch(e){}fermaAvvisi();render();toast('Notifiche spente su questo dispositivo');return;}
+  if(avvisiSi()){try{localStorage.setItem('fm_avvisi','0');}catch(e){}fermaAvvisi();await disiscriviPush();render();toast('Notifiche spente su questo dispositivo');return;}
+  if(suIOSsenzaHome()){toast('Su iPhone: tocca Condividi › «Aggiungi alla schermata Home», apri l’app da lì e poi tocca di nuovo la campanella');return;}
   var perm=await Notification.requestPermission();if(perm!=='granted'){toast('Notifiche bloccate: attivale nelle impostazioni del browser per fm-coop.com');return;}
-  try{localStorage.setItem('fm_avvisi','1');}catch(e){}avviaAvvisi();render();notifica('🔔 Notifiche attive','Ti avviso quando un’operatrice entra, chiude o manda una segnalazione.','prova');return;}
+  try{localStorage.setItem('fm_avvisi','1');}catch(e){}avviaAvvisi();var okp=await iscriviPush();render();notifica('🔔 Notifiche attive',okp?'Ti arrivano anche con l’app chiusa: entrate, chiusure e segnalazioni.':'Ti arrivano con l’app aperta (questo browser non permette quelle ad app chiusa).','prova');return;}
  if(d.reload){await refresh();return;}
  if(d.sdel!==undefined){(S._sfiles||[]).splice(Number(d.sdel),1);sRedraw();return;}
  if(d.cedit){S.cl.edit=Number(d.cedit);render();var tx=document.getElementById('cc_'+d.cedit);if(tx)tx.focus();return;}
