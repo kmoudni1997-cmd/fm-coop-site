@@ -704,9 +704,10 @@ async function loadConti(){var B=S.boss;B.cm=B.cm||meseDi(todayStr());var r=mese
  var pr=await sb.from('program').select('id,day,apt_id,guests,apartments(name,client,zone,size)').gte('day',r[0]).lte('day',r[1]).eq('kind','lavoro');if(pr.error)throw pr.error;
  var ex=await sb.from('extra_clienti').select('*, apartments(name)').gte('day',r[0]).lte('day',r[1]).order('day');if(ex.error)throw ex.error;
  // lavori confermati sul gruppo WhatsApp «FM programma» (lavori_manuali): contano come chiusi anche se nell'app non lo sono
- var lm=await sb.from('lavori_manuali').select('day,apt_id,apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('apt_id','is',null);if(lm.error)throw lm.error;
+ var lm=await sb.from('lavori_manuali').select('day,apt_id,descr,fonte,apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('apt_id','is',null);if(lm.error)throw lm.error;
  var pass=ps.data||[],gia={};pass.forEach(function(x){gia[x.day+'|'+x.apt_id]=1});
- (lm.data||[]).forEach(function(m){var k=m.day+'|'+m.apt_id;if(gia[k])return;gia[k]=1;var g=(pr.data||[]).filter(function(x){return x.day===m.day&&x.apt_id===m.apt_id&&x.guests})[0];pass.push({day:m.day,apt_id:m.apt_id,apartments:m.apartments,program:{guests:g?g.guests:null},chat:true});});
+ (lm.data||[]).forEach(function(m){if(/extra|ripasso/i.test(m.descr||'')||/^app/.test(m.fonte||''))return; // ore extra e ripassi sono negli extra, non sono passaggi
+  var k=m.day+'|'+m.apt_id;if(gia[k])return;gia[k]=1;var g=(pr.data||[]).filter(function(x){return x.day===m.day&&x.apt_id===m.apt_id&&x.guests})[0];pass.push({day:m.day,apt_id:m.apt_id,apartments:m.apartments,program:{guests:g?g.guests:null},chat:true});});
  pass.sort(function(a,b){return a.day<b.day?-1:a.day>b.day?1:0});
  B.conti={pass:pass,prog:pr.data||[],extra:ex.data||[]};B.contiLoading=false;}
 function contoCliente(B,cl){var R=REGOLE_CONTI[cl]||{},visti={},righe=[],tot=0,manca=0;
