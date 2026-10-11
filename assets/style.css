@@ -1504,3 +1504,22 @@ body.pg-condomini .page-hero{background-image:linear-gradient(rgba(9,10,11,.5),r
 body.pg-servizi .page-hero{background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(serv-logistica.jpg)!important}
 body.pg-settori .page-hero{background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(hero-squadra.jpg)!important}
 body.pg-metodo .page-hero{background-image:linear-gradient(rgba(9,10,11,.55),rgba(9,10,11,.82)),url(serv-controllo.jpg)!important}
+
+/* ── Tappa 2 (11/10/2026): prima schermata più chiara ── */
+.hero-full h1{font-size:clamp(2.1rem,4.4vw,3.7rem) !important;line-height:1.04 !important}
+@media (max-width:820px){.hero-full h1{font-size:clamp(2rem,8.6vw,2.8rem) !important}}
+.hero-full .btn-primary{background:#fff;color:var(--nero);border-color:#fff}
+.hero-full .btn-primary:hover{background:var(--argento-chiaro)}
+.hero-prove{grid-column:1/-1;list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px;
+  font-family:var(--mono);font-size:.8rem;letter-spacing:.04em;color:#D3D7DB}
+.hero-prove li{display:flex;align-items:center;gap:8px}
+.hero-prove li+li::before{content:"";width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.55;margin-right:14px}
+.hero-prove b{color:#fff;font-weight:600}
+.nav-area{border:0 !important;padding:9px 4px !important;font-weight:500 !important;font-size:.85em;opacity:.72}
+.nav-area:hover{opacity:1}
+@media (max-width:420px){.hero-prove{font-size:.74rem;gap:6px 14px}.hero-prove li+li::before{margin-right:8px}}
+.dopo-invio{margin-top:18px;padding:14px 16px;border:1px solid var(--line,#E2DED5);border-radius:12px;font-size:.9rem}
+.dopo-invio ol{margin:8px 0 0;padding-left:20px}.dopo-invio li{margin:3px 0}
+#contactForm select{width:100%}
+form select{width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:10px;font-size:1rem;font-family:inherit;background:#fff;color:inherit}
+form select:focus{outline:0;border-color:var(--nero);box-shadow:0 0 0 3px rgba(17,18,20,.08)}

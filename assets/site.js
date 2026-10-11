@@ -18,7 +18,8 @@ const CONFIG = {
 
 document.addEventListener("DOMContentLoaded", function () {
   /* Link WhatsApp / Telefono / Email */
-  var waLink = "https://wa.me/" + CONFIG.NUMERO_WA + "?text=" + encodeURIComponent(CONFIG.WHATSAPP_MSG);
+  var waMsg = (document.body && document.body.getAttribute("data-wa-msg")) || CONFIG.WHATSAPP_MSG;
+  var waLink = "https://wa.me/" + CONFIG.NUMERO_WA + "?text=" + encodeURIComponent(waMsg);
   document.querySelectorAll("[data-wa]").forEach(function (el) {
     el.href = waLink; el.target = "_blank"; el.rel = "noopener";
   });
@@ -92,6 +93,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (CONFIG.WEB3FORMS_KEY === "INCOLLA-QUI-LA-TUA-ACCESS-KEY") {
         var body = encodeURIComponent(
           "Nome: " + form.nome.value +
+          "\nServizio: " + (form.servizio ? form.servizio.value : "") +
+          "\nComune: " + (form.comune ? form.comune.value : "") +
           "\nContatto: " + form.contatto.value +
           "\n\n" + form.messaggio.value
         );
