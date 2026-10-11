@@ -1097,7 +1097,7 @@ html{overflow-x:clip}
    Il marchio enorme, appena percepibile, che chiude il sito. */
 footer{overflow:hidden}
 footer::after{content:"";position:absolute;right:-3%;bottom:-32%;width:min(560px,52vw);
-  aspect-ratio:2551/3000;background:url("assets/logo.png") center/contain no-repeat;
+  aspect-ratio:2551/3000;background:url("logo.png") center/contain no-repeat;
   filter:brightness(0) invert(1);opacity:.032;pointer-events:none;z-index:0}
 .foot-grid,.foot-bottom{position:relative;z-index:2}
 

@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
         var j = await r.json();
         if (j.success) {
           msg.className = "form-msg ok";
-          msg.textContent = "Grazie! Richiesta inviata, ti ricontattiamo a breve.";
+          msg.textContent = "Grazie! Richiesta inviata: ti ricontattiamo entro 2 ore in orario d'ufficio.";
           form.reset();
         } else {
           msg.className = "form-msg err";
