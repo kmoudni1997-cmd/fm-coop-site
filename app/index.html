@@ -694,6 +694,7 @@ function vScheda(){var pr=S.apt,a=pr.apartments;return topbar('Scheda','<button 
 // Regole di fatturazione decise da Karim (memoria «conteggi clienti», 03/10/2026). Il prezzo del passaggio viene da Gestione (apt_costi.prezzo_cliente).
 var REGOLE_CONTI={
  'Anita Group':{bianchPersona:5,tetto:90,extraMese:{testo:'Extra prodotti (caffè, sapone, acqua, carta igienica ecc.)',importo:63},nota:'Biancheria 5 € a persona, massimo 90 € a passaggio (pulizia + biancheria). Extra prodotti 63 € al mese.'},
+ 'BCI':{extraMese:{testo:'Pulizia Ufficio BCI (via Angelo Mai 18/A) — canone mensile',importo:150},nota:'Ufficio BCI: 150 € al mese, fisso.'},
  'Immobili e Soluzioni':{zone:{'Manerba':{bianchPersona:2.5}},nota:'Bergamo: biancheria compresa nel prezzo. Manerba: biancheria 2,50 € a persona.'}
 };
 function meseDi(d){return d.slice(0,7);}
