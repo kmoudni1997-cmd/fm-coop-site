@@ -13,5 +13,6 @@ self.addEventListener('notificationclick', function (e) {
 // pronto per le notifiche push vere (a app chiusa), se un giorno le attiviamo
 self.addEventListener('push', function (e) {
   var d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'FM Squadra', { body: d.body || '', icon: '../assets/favicon-192.png?v=2', badge: '../assets/favicon-192.png?v=2', tag: d.tag }));
+  // ogni avviso ha il suo tag e renotify: anche se c'è già una notifica con lo stesso tag, suona e compare di nuovo
+  e.waitUntil(self.registration.showNotification(d.title || 'FM Squadra', { body: d.body || '', icon: '../assets/favicon-192.png?v=2', badge: '../assets/favicon-192.png?v=2', tag: (d.tag || 'fm') + '-' + Date.now(), renotify: true, timestamp: Date.now() }));
 });
