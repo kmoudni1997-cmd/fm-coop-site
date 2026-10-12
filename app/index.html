@@ -255,7 +255,12 @@ function isVidPath(x){return /\.(mp4|mov|webm|3gp|m4v)$/i.test(x||'');}
 // video obbligatorio solo per i passaggi iniziati dal 10/10/2026 (quelli di prima si chiudono anche senza, a meno che il video ci sia già)
 var VIDEO_DAL='2026-10-09T22:00:00Z';
 function videoServe(pr,p0){var pp=p0||passOf(pr);if(!pp||!pp.started_at)return true;if(new Date(pp.started_at)>=new Date(VIDEO_DAL))return true;var bl=S.boss&&S.boss.photos&&S.boss.photos[pp.id];return !!((S.photos[pp.id]&&S.photos[pp.id]['Video all’ingresso'])||(bl&&bl.some(function(u){return u.kind==='Video all’ingresso'})));}
-function fotoDi(pr,p0){var b=(isServ(pr.apartments)||!videoServe(pr,p0)?[]:['Video all’ingresso']).concat(phoOf(pr.apartments)),a=pr.apartments||{},x=[].concat(Array.isArray(a.foto_extra)?a.foto_extra:[],(pr&&Array.isArray(pr.foto_extra))?pr.foto_extra:[]).filter(function(k,i,arr){return b.indexOf(k)<0&&arr.indexOf(k)===i});if(!x.length)return b;if(isServ(pr.apartments))return b.concat(x);return b.slice(0,-1).concat(x,[b[b.length-1]]);}
+function fotoDi(pr,p0){var a=pr.apartments||{},tutte=[].concat(Array.isArray(a.foto_extra)?a.foto_extra:[],(pr&&Array.isArray(pr.foto_extra))?pr.foto_extra:[]);
+ // «-Nome» nelle foto in più toglie quella foto dalle obbligatorie (es. «-Chiavi nel lucchetto» finché non c'è la key box)
+ var no=tutte.filter(function(k){return /^-/.test(k)}).map(function(k){return k.slice(1)});
+ var b=(isServ(a)||!videoServe(pr,p0)?[]:['Video all’ingresso']).concat(phoOf(a)).filter(function(k){return no.indexOf(k)<0});
+ var x=tutte.filter(function(k,i,arr){return !/^-/.test(k)&&b.indexOf(k)<0&&arr.indexOf(k)===i});if(!x.length)return b;if(isServ(a))return b.concat(x);
+ var ult=b[b.length-1];if(ult!=='Chiavi nel lucchetto')return b.concat(x);return b.slice(0,-1).concat(x,[ult]);}
 SERVIZI.ufficiobci={ico:'🏢',lock:false,costo:true,check:SERVIZI.ufficiofm.check,photos:['Ufficio','Bagno'],ask:'Inizi adesso la pulizia dell’ufficio?',tit:'Pulizia dell’ufficio BCI',sub:'Premi «Inizia», pulisci l’ufficio e alla fine fai le foto.',fnote:'Fai le foto a lavoro finito. Senza le foto il passaggio non si chiude.',ftit:null};
 function bannerServ(work,stOf,B){var L=work.filter(function(pr){return isServ(pr.apartments)&&stOf(pr)!=='done'&&(!pr.user_id||B.ops.some(function(o){return o.id===pr.user_id&&o.role!=='op'}))});if(!L.length)return '';
  return L.map(function(pr){return '<div class="card" style="border:2px solid var(--warn)"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><span><b>'+serv(pr.apartments).ico+' '+esc(pr.apartments.name)+'</b><br><span class="note">'+(pr.user_id?'Oggi nessuna operatrice è in questa zona: tocca a '+esc(pr.profiles?pr.profiles.name:'un responsabile')+'.':'Da assegnare: gli appartamenti della zona non hanno ancora una persona.')+' '+esc(pr.note||'')+'</span></span><button class="mini" data-viewpass="'+pr.id+'">Apri</button></div></div>'}).join('');}
@@ -703,7 +708,7 @@ function meseDi(d){return d.slice(0,7);}
 function meseRange(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));var a=new Date(y,mm-1,1),b=new Date(y,mm,0);return [dstr(a),dstr(b)];}
 function meseNome(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));return new Date(y,mm-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'});}
 async function loadConti(){var B=S.boss;B.cm=B.cm||meseDi(todayStr());var r=meseRange(B.cm);B.contiLoading=true;
- var ps=await sb.from('passaggi').select('id,day,closed_at,apt_id,program_id,program(guests),apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('closed_at','is',null).order('day');if(ps.error)throw ps.error;
+ var ps=await sb.from('passaggi').select('id,day,started_at,closed_at,fermato_at,apt_id,program_id,program(guests),apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('closed_at','is',null).order('day');if(ps.error)throw ps.error;
  var pr=await sb.from('program').select('id,day,apt_id,guests,apartments(name,client,zone,size)').gte('day',r[0]).lte('day',r[1]).eq('kind','lavoro');if(pr.error)throw pr.error;
  var ex=await sb.from('extra_clienti').select('*, apartments(name)').gte('day',r[0]).lte('day',r[1]).order('day');if(ex.error)throw ex.error;
  // lavori confermati sul gruppo WhatsApp «FM programma» (lavori_manuali): contano come chiusi anche se nell'app non lo sono
@@ -715,11 +720,14 @@ async function loadConti(){var B=S.boss;B.cm=B.cm||meseDi(todayStr());var r=mese
  B.conti={pass:pass,prog:pr.data||[],extra:ex.data||[]};B.contiLoading=false;}
 function contoCliente(B,cl){var R=REGOLE_CONTI[cl]||{},visti={},righe=[],tot=0,manca=0;
  (B.conti.pass||[]).forEach(function(p){var a=p.apartments||{};if(a.client!==cl)return;var k=p.day+'|'+p.apt_id;if(visti[k])return;visti[k]=1;
-  var c=(B.costi||{})[p.apt_id]||{},prezzo=c.prezzo_cliente!=null?Number(c.prezzo_cliente):null;if(prezzo==null&&isServ(a)){delete visti[k];return;}if(prezzo==null)manca++;
+  var c=(B.costi||{})[p.apt_id]||{},prezzo=c.prezzo_cliente!=null?Number(c.prezzo_cliente):null,oraria=c.prezzo_ora!=null?Number(c.prezzo_ora):null,ore=null;
+  if(oraria!=null){if(p.started_at&&p.closed_at){ore=durMin(p)/60;prezzo=Math.round(ore*oraria*100)/100;}else prezzo=null;}
+  if(prezzo==null&&isServ(a)){delete visti[k];return;}if(prezzo==null)manca++;
   var osp=(p.program&&p.program.guests)||null;var rz=(R.zone&&R.zone[a.zone])||R;var bianch=0;
   if(rz.bianchPersona&&!isServ(a)){bianch=rz.bianchPersona*(osp||a.guests||0);}
   var riga=(prezzo||0)+bianch;if(R.tetto&&riga>R.tetto){bianch=Math.max(0,R.tetto-(prezzo||0));riga=R.tetto;}
-  righe.push({day:p.day,app:a.name,osp:osp,prezzo:prezzo,bianch:bianch,tot:riga,tetto:!!(R.tetto&&riga===R.tetto)});tot+=riga;});
+  if(oraria!=null)bianch=0,riga=prezzo||0;
+  righe.push({day:p.day,app:a.name,osp:osp,prezzo:prezzo,bianch:bianch,tot:riga,tetto:!!(R.tetto&&riga===R.tetto),oraria:oraria,ore:ore});tot+=riga;});
  var chiusi={};righe.forEach(function(x){chiusi[x.day+'|'+x.app]=1});
  var oggi=todayStr(),prev=0,prevEur=0,nonChiusi=[];(B.conti.prog||[]).forEach(function(x){var a=x.apartments||{};if(a.client!==cl||isServ(a))return;if(chiusi[x.day+'|'+a.name])return;var c=(B.costi||{})[x.apt_id]||{};if(x.day<oggi)nonChiusi.push(x.day+'|'+a.name);else{prev++;prevEur+=Number(c.prezzo_cliente||0);}});
  nonChiusi=nonChiusi.sort().map(function(z){return z.slice(8,10)+'/'+z.slice(5,7)+' '+z.slice(11)});var ex=(B.conti.extra||[]).filter(function(e){return e.client===cl});var totEx=ex.reduce(function(s,e){return s+(e.importo==null?0:Number(e.importo))},0);var daPrezzare=ex.filter(function(e){return e.importo==null}).length;
@@ -727,15 +735,16 @@ function contoCliente(B,cl){var R=REGOLE_CONTI[cl]||{},visti={},righe=[],tot=0,m
  return {righe:righe,tot:tot,extra:ex,totEx:totEx,daPrezzare:daPrezzare,extraMese:R.extraMese,totale:tot+totEx+em,manca:manca,prev:prev,prevEur:prevEur,nonChiusi:nonChiusi,nota:R.nota||'Prezzo del passaggio da Gestione. Biancheria non conteggiata.'};}
 // ===== CONTEGGI in stile LDC (una riga per giorno, colonne per prezzo) =====
 function corto(n){var m=/^Corridoni (\d+)$/.exec(n||'');return m?m[1]:n;}
-function ldc(K){var prezzi={},G={};K.righe.forEach(function(x){prezzi[x.prezzo==null?'?':x.prezzo]=1;(G[x.day]=G[x.day]||{r:[],e:[]}).r.push(x)});K.extra.forEach(function(e){(G[e.day]=G[e.day]||{r:[],e:[]}).e.push(e)});
- var P=Object.keys(prezzi).sort(function(a,b){return a==='?'?1:b==='?'?-1:Number(a)-Number(b)});var hasB=K.righe.some(function(x){return x.bianch>0});
- var righe=Object.keys(G).sort().map(function(d){var g=G[d],gr=P.map(function(pz){var L=g.r.filter(function(x){return String(x.prezzo==null?'?':x.prezzo)===pz});return {nomi:L.map(function(x){return corto(x.app)}),n:L.length,tot:L.reduce(function(t,x){return t+(x.prezzo||0)},0)}});
+function kx(x){return x.oraria!=null?'ore'+x.oraria:(x.prezzo==null?'?':String(x.prezzo));}
+function ldc(K){var prezzi={},G={};K.righe.forEach(function(x){prezzi[kx(x)]=1;(G[x.day]=G[x.day]||{r:[],e:[]}).r.push(x)});K.extra.forEach(function(e){(G[e.day]=G[e.day]||{r:[],e:[]}).e.push(e)});
+ var P=Object.keys(prezzi).sort(function(a,b){var ra=a==='?'?2:/^ore/.test(a)?1:0,rb=b==='?'?2:/^ore/.test(b)?1:0;return ra!==rb?ra-rb:(ra===0?Number(a)-Number(b):a<b?-1:1)});var hasB=K.righe.some(function(x){return x.bianch>0});
+ var righe=Object.keys(G).sort().map(function(d){var g=G[d],gr=P.map(function(pz){var L=g.r.filter(function(x){return kx(x)===pz});return {nomi:L.map(function(x){return corto(x.app)+(x.oraria!=null&&x.ore!=null?' '+fmt(Math.round(x.ore*60)):'')}),n:L.length,tot:L.reduce(function(t,x){return t+(x.prezzo||0)},0)}});
   var b=g.r.reduce(function(t,x){return t+(x.bianch||0)},0),osp=g.r.reduce(function(t,x){return t+(x.bianch?Number(x.osp||0):0)},0);
   var ex=g.e.map(function(e){return (e.apartments?corto(e.apartments.name)+': ':'')+e.descrizione+(e.importo==null?' (DA PREZZARE)':' '+String(Number(e.importo)).replace('.',',')+' €')}),te=g.e.reduce(function(t,e){return t+(e.importo==null?0:Number(e.importo))},0);
   var tot=g.r.reduce(function(t,x){return t+x.tot},0)+te;return {day:d,gr:gr,b:b,osp:osp,ex:ex,te:te,tot:tot,dp:g.e.some(function(e){return e.importo==null})};});
  var T={gr:P.map(function(_,i){return {n:righe.reduce(function(t,r){return t+r.gr[i].n},0),tot:righe.reduce(function(t,r){return t+r.gr[i].tot},0)}}),b:righe.reduce(function(t,r){return t+r.b},0),te:righe.reduce(function(t,r){return t+r.te},0),tot:righe.reduce(function(t,r){return t+r.tot},0)};
  return {P:P,hasB:hasB,righe:righe,T:T};}
-function ldcTitolo(pz){return pz==='?'?'Senza prezzo':'Passaggi a '+String(pz).replace('.',',')+' €';}
+function ldcTitolo(pz){if(/^ore/.test(pz))return 'A ore ('+String(pz.slice(3)).replace('.',',')+' €/h)';return pz==='?'?'Senza prezzo':'Passaggi a '+String(pz).replace('.',',')+' €';}
 function vConti(B){var cm=B.cm||meseDi(todayStr());
  var h='<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><div class="agh" style="margin:0"><button data-cmese="-1">‹</button><h2 style="margin:0;text-transform:capitalize">'+meseNome(cm)+'</h2><button data-cmese="1">›</button></div>';
  if(!B.conti){if(!B.contiLoading)loadConti().then(render).catch(fail);return h+'</div><div class="card"><span class="spin"></span> carico i passaggi del mese…</div>';}
