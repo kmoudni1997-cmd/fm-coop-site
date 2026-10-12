@@ -262,3 +262,43 @@ h3{font-size:1.3rem;line-height:1.25}
 .direct a{word-break:break-word}
 .champs>*{min-width:0}
 .champs input,.champs select,.champs textarea{width:100%;min-width:0}
+
+/* =====================================================================
+   REVISIONE 2 (12/10/2026)
+   ===================================================================== */
+/* 5. Contenuti sempre visibili: niente sezioni nascoste in attesa dell'animazione */
+.apparait,.apparait.vu{opacity:1;transform:none;transition:none}
+
+/* 6. Testi delle schede a 18 px */
+.service p,.tuile p,.etapes p,.pour,.inclus,.faq p,.chiffres span,.engagement{font-size:1.125rem}
+.tuile p{color:#E3EAEE}
+
+/* 4. Formule: due colonne fino a 1500 px, quattro solo sugli schermi ampi */
+.cartes{grid-template-columns:repeat(2,1fr);gap:26px}
+@media (min-width:1500px){.cartes{grid-template-columns:repeat(4,1fr)}}
+@media (min-width:821px) and (max-width:1499px){
+  .carte{flex-direction:row}
+  .carte figure{flex:0 0 38%;aspect-ratio:auto}
+}
+.nom-prix{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.nom-prix span{font-size:1rem;color:var(--gris)}
+.nom-prix b{font-family:var(--serif);font-size:1.5rem;color:var(--nuit);font-weight:600}
+.carte.conseil .nom-prix b{color:var(--or)}
+.choisir{margin-top:18px;width:100%}
+.carte .fiche{margin-top:12px;align-self:center;font-weight:500}
+@media (max-width:820px){.cartes{grid-template-columns:1fr}}
+
+/* 11. Dettagli dei servizi */
+.plus{margin-top:12px;border-top:1px solid var(--ligne)}
+.plus summary{list-style:none;cursor:pointer;padding:12px 0 4px;font-weight:600;font-size:1.02rem;color:var(--nuit);display:flex;justify-content:space-between}
+.plus summary::-webkit-details-marker{display:none}
+.plus summary::after{content:"+";color:var(--or);font-size:1.3rem;line-height:1}
+.plus[open] summary::after{content:"−"}
+.plus ul{list-style:none;margin:8px 0 6px}
+.plus li{padding:5px 0 5px 22px;position:relative;font-size:1.06rem;color:var(--gris)}
+.plus li::before{content:"✓";position:absolute;left:0;color:var(--or);font-weight:700}
+.lien-devis{display:inline-block;margin-top:6px;font-weight:600;color:var(--nuit);border-bottom:1.5px solid var(--or)}
+
+/* Offerta fondatori più leggibile */
+.liste-or strong{color:#fff;font-weight:600}
+.liste-or li{line-height:1.5}
