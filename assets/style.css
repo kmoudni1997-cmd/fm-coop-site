@@ -1568,3 +1568,13 @@ footer h2.foot-h{color:#fff;font-size:.76rem;margin:0 0 16px;text-transform:uppe
 /* Menu telefono: con la barra «vetro» il menu fisso partiva dalla barra e, a metà pagina, finiva fuori schermo */
 body.menu-aperto header{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 @media (max-width:900px){.menu a.nav-cta{white-space:nowrap;font-size:1.35rem !important}}
+
+/* Testimonianze clienti (12/10/2026) */
+.testim-griglia{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-top:8px}
+.testim{margin:0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px 26px 24px;display:flex;flex-direction:column;justify-content:space-between;gap:22px;position:relative}
+.testim::before{content:"\201C";position:absolute;top:6px;right:20px;font-family:var(--serif);font-size:4.2rem;line-height:1;color:var(--line)}
+.testim blockquote{margin:0;font-family:var(--serif);font-size:1.12rem;line-height:1.55;color:var(--nero)}
+.testim figcaption{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);padding-top:14px;font-size:.92rem}
+.testim figcaption span{color:var(--muted);font-size:.84rem}
+.chiara .testim{background:#fff}
+section:not(.chiara).testim-sec .testim{background:#F7F6F2}
