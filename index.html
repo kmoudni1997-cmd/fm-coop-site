@@ -30,13 +30,15 @@
   .porta h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:clamp(2.4rem,5vw,4.4rem);line-height:1}
   .porta span{display:inline-block;margin-top:22px;padding:12px 28px;border:1.5px solid #fff;border-radius:40px;font-weight:600;transition:background .3s,color .3s}
   .porta:hover span{background:#fff;color:#111214}
-  .logo{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:10px;font-weight:600;font-size:1.05rem}
-  .logo img{height:30px}
+  .logo{position:fixed;top:clamp(22px,4vh,44px);left:50%;transform:translateX(-50%);z-index:5;pointer-events:none}
+  .logo img{height:clamp(150px,27vh,250px);width:auto;filter:drop-shadow(0 6px 24px rgba(0,0,0,.55))}
+  .testo{margin-top:clamp(150px,22vh,230px)}
+  @media (max-width:760px){.logo{position:absolute;top:16px}.logo img{height:120px}.testo{margin-top:0}.porta:first-of-type .testo{margin-top:120px}}
   @media (max-width:760px){.porte{flex-direction:column}.porta{flex:1}}
 </style>
 </head>
 <body>
-<div class="logo"><img src="assets/fm-mark-bianco.png?v=2" alt="" />FM Coop</div>
+<div class="logo"><img src="assets/logo-bianco.png?v=3" alt="FM Coop – Facility Management Cooperativa" /></div>
 <main class="porte">
   <a class="porta" href="italia.html" hreflang="it">
     <video autoplay muted loop playsinline preload="auto" poster="assets/hero-squadra.jpg" aria-hidden="true">
