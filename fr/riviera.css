@@ -293,3 +293,78 @@ h3{font-size:1.55rem;line-height:1.2}
   .actions{gap:22px}
   .ouverture::after{background:linear-gradient(180deg,rgba(15,42,61,.35) 0%,rgba(15,42,61,.85) 100%)}
 }
+
+/* =====================================================================
+   LEGGIBILITÀ (12/10/2026): testi più grandi, più contrasto, menu leggibile
+   ===================================================================== */
+:root{--gris:#46535B}
+body{font-size:18px;font-weight:400}
+.texte{font-size:1.12rem;line-height:1.75}
+.chapeau{font-size:1.2rem;color:#fff}
+.note-discrete{font-size:1.12rem}
+
+/* Menu sempre su fondo scuro, leggibile sopra il video */
+.entete{background:rgba(15,42,61,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:16px 0}
+.entete.plein{background:rgba(15,42,61,.97);padding:12px 0}
+.nav a{font-size:1rem;letter-spacing:.06em;text-transform:none;font-weight:400;opacity:1}
+.nav .nav-rdv{font-size:1rem;letter-spacing:.04em}
+.marque span{font-size:1.55rem}
+.marque small{font-size:.72rem}
+
+/* Pulsanti a 16 px */
+.bouton,.lien-fleche,.voir-fiche,.tarifs summary{font-size:1rem;letter-spacing:.08em}
+.surtitre{font-size:.82rem;letter-spacing:.24em}
+
+/* Titolo iniziale più equilibrato */
+.ouverture h1{font-size:clamp(2.8rem,6vw,5rem);line-height:1.02}
+.ouverture::after{background:linear-gradient(100deg,rgba(15,42,61,.86) 0%,rgba(15,42,61,.58) 50%,rgba(15,42,61,.18) 100%)}
+
+/* Testi secondari più leggibili */
+.grille-services p,.etapes p,.carte li,.faq p,.liste-fine li,.liste-or li{font-size:1.05rem}
+.etapes p{color:rgba(255,255,255,.85)}
+.heure,.chiffres span,.bandeau-lieux{font-size:.8rem}
+.prix small{font-size:.78rem}
+.carte-def{font-size:1.2rem}
+.ruban{font-size:.72rem}
+
+/* Formule: due colonne su computer, foto a sinistra e testo a destra */
+@media (min-width:1001px){
+  .cartes{grid-template-columns:repeat(2,1fr);gap:30px}
+  .carte{flex-direction:row}
+  .carte-img{flex:0 0 42%;aspect-ratio:auto;min-height:100%}
+  .carte-corps{padding:34px 34px 30px}
+}
+
+/* Modulo: etichette più grandi */
+.champs label{font-size:1rem;letter-spacing:.04em;text-transform:none;color:var(--encre)}
+.champs input,.champs select,.champs textarea{font-size:1.05rem}
+.accord{font-size:.98rem}
+
+/* Tabella prezzi: su telefono scorre, senza rimpicciolire */
+.defile-hint{display:none;font-size:.9rem;color:var(--gris);text-align:right;margin-top:8px}
+.details-tarifs{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;text-align:left}
+.details-tarifs h3{font-size:1.45rem;margin-bottom:12px}
+.details-tarifs p,.details-tarifs li{color:var(--gris);font-size:1.02rem;margin-bottom:8px}
+.details-tarifs ul{padding-left:18px}
+.details-tarifs strong{color:var(--encre);font-weight:500}
+@media (max-width:820px){
+  .tarifs table{min-width:620px;font-size:1rem}
+  .tarifs th,.tarifs td{padding:14px 10px}
+  .tarifs th{font-size:1.1rem}
+  .tarifs th span{font-size:.72rem;letter-spacing:.1em}
+  .tarifs td:first-child{font-size:1.15rem}
+  .defile-hint{display:block}
+  .details-tarifs{grid-template-columns:1fr;gap:24px}
+  .nav a,.nav .nav-rdv{font-size:1.25rem}
+}
+
+/* Altri luoghi */
+.autres{background:var(--sable);padding:clamp(70px,9vw,120px) 0}
+
+/* Tastiera: focus visibile e salto al contenuto */
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--or);outline-offset:3px}
+.saut{position:absolute;left:12px;top:-60px;z-index:100;background:var(--or);color:#fff;padding:10px 16px;transition:top .2s}
+.saut:focus{top:12px}
+
+/* Animazioni più leggere */
+.apparait{transform:translateY(16px);transition:opacity .8s ease,transform .8s ease}
