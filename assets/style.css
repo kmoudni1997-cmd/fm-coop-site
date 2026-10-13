@@ -1578,3 +1578,5 @@ body.menu-aperto header{backdrop-filter:none !important;-webkit-backdrop-filter:
 .testim figcaption span{color:var(--muted);font-size:.84rem}
 .chiara .testim{background:#fff}
 section:not(.chiara).testim-sec .testim{background:#F7F6F2}
+/* 4 o piu commenti: due colonne (13/10/2026) */
+@media (min-width:760px){.testim-griglia:has(> .testim:nth-child(4)){grid-template-columns:repeat(2,1fr)}}
