@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" />
-<link rel="stylesheet" href="site.css?v=4" />
+<link rel="stylesheet" href="site.css?v=5" />
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"FM Coop · Côte d'Azur","description":"Ménage entre deux séjours, linge hôtelier, kits d'accueil, petites réparations et mise en place pour locations courte durée, bureaux, salles de sport et copropriétés.","url":"https://fm-coop.com/fr/","telephone":"+33774162337","email":"info@fm-coop.com","image":"https://fm-coop.com/assets/nizza-poster.jpg","areaServed":["Nice","Villefranche-sur-Mer","Antibes","Cannes"],"parentOrganization":{"@type":"Organization","name":"FM SCRL – Società Cooperativa","url":"https://fm-coop.com/"}}</script>
 </head>
 <body>
@@ -94,9 +94,9 @@
     </div>
     <div class="tuiles apparait">
       <a class="tuile" href="#tarifs"><img src="../assets/foto-appartamento.jpg" alt="" loading="lazy" /><div><h3>Locations courte durée</h3><p>Conciergeries, hôtes, propriétaires</p><span>Voir les formules →</span></div></a>
-      <a class="tuile" href="#contact" data-profil="Bureaux / salle de sport / copropriété"><img src="../assets/foto-ufficio.jpg" alt="" loading="lazy" /><div><h3>Bureaux</h3><p>Cabinets, agences, entreprises</p><span>Demander un devis →</span></div></a>
-      <a class="tuile" href="#contact" data-profil="Bureaux / salle de sport / copropriété"><img src="../assets/foto-palestra.jpg" alt="" loading="lazy" /><div><h3>Salles de sport</h3><p>Passages hors horaires d'ouverture</p><span>Demander un devis →</span></div></a>
-      <a class="tuile" href="#contact" data-profil="Bureaux / salle de sport / copropriété"><img src="../assets/serv-condomini.jpg" alt="" loading="lazy" /><div><h3>Copropriétés</h3><p>Parties communes, halls, escaliers</p><span>Demander un devis →</span></div></a>
+      <a class="tuile" href="bureaux.html"><img src="../assets/foto-ufficio.jpg" alt="" loading="lazy" /><div><h3>Bureaux</h3><p>Cabinets, agences, entreprises</p><span>Découvrir →</span></div></a>
+      <a class="tuile" href="salles-de-sport.html"><img src="../assets/foto-palestra.jpg" alt="" loading="lazy" /><div><h3>Salles de sport</h3><p>Passages hors horaires d'ouverture</p><span>Découvrir →</span></div></a>
+      <a class="tuile" href="coproprietes.html"><img src="../assets/serv-condomini.jpg" alt="" loading="lazy" /><div><h3>Copropriétés</h3><p>Parties communes, halls, escaliers</p><span>Découvrir →</span></div></a>
     </div>
   </div>
 </section>
@@ -328,6 +328,9 @@
   /* Secteurs : pré-remplir le profil */
   var sel=document.getElementById('profil');
   document.querySelectorAll('[data-profil]').forEach(function(a){a.addEventListener('click',function(){sel.value=a.dataset.profil;});});
+  /* Profil depuis l'adresse (pages secteurs) */
+  var qp=new URLSearchParams(location.search).get('profil');
+  if(qp){sel.value=qp;var sv=document.getElementById('service');if(sv)sv.value='Entretien régulier (bureaux, salle de sport, copropriété)';}
   /* Formule et service : pré-remplir le formulaire, adapter le message */
   var serv=document.getElementById('service'),msg=document.getElementById('message');
   document.querySelectorAll('[data-service]').forEach(function(a){a.addEventListener('click',function(){serv.value=a.dataset.service;});});
@@ -335,7 +338,7 @@
     if(/Bureaux/.test(p))msg.placeholder="Surface, type de locaux, fréquence souhaitée, horaires d'intervention…";
     else if(/Résidence/.test(p))msg.placeholder="Nombre de chambres ou d'appartements, rotations par semaine, linge…";
     else msg.placeholder="Typologies, rotations par semaine, formule envisagée…";}
-  sel.addEventListener('change',aide);
+  sel.addEventListener('change',aide);if(qp)aide();
   document.querySelectorAll('[data-profil]').forEach(function(a){a.addEventListener('click',function(){setTimeout(aide,0);serv.value='Entretien régulier (bureaux, salle de sport, copropriété)';});});
   /* Comptage anonyme des contacts */
   var EV="https://kaectlvryylrqmtuzgro.supabase.co/rest/v1/sito_eventi",KEY="sb_publishable_Uv32SJlHq4ZnJact0kNNSg_Jv3QtmXS";
