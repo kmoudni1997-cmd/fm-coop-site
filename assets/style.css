@@ -1580,3 +1580,11 @@ body.menu-aperto header{backdrop-filter:none !important;-webkit-backdrop-filter:
 section:not(.chiara).testim-sec .testim{background:#F7F6F2}
 /* 4 o piu commenti: due colonne (13/10/2026) */
 @media (min-width:760px){.testim-griglia:has(> .testim:nth-child(4)){grid-template-columns:repeat(2,1fr)}}
+/* Commenti: avatar con iniziali + bollino cliente (13/10/2026) */
+.testim figcaption{flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}
+.testim .testim-av{width:44px;height:44px;border-radius:50%;background:var(--nero);color:#fff;display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:1rem;flex:none}
+.testim .testim-chi{display:flex;flex-direction:column;gap:2px;flex:1;min-width:150px;color:var(--nero);font-size:.92rem}
+.testim .testim-chi span{color:var(--muted);font-size:.84rem}
+.testim .testim-ok{font-size:.74rem;font-weight:600;color:#1F7A45;background:#E6F4EA;border:1px solid #CBE8D3;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.testim:first-child{border-color:var(--nero)}
+.testim-sec .lead{margin-top:10px}
