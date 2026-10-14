@@ -254,13 +254,15 @@ async function recFine(){clearInterval(REC.tick);var tipo=(REC.mr&&REC.mr.mimeTy
  var p2=passOf(S.apt);if(!p2){logErr('video-senza-passaggio','passaggio non trovato',{apt:S.apt&&S.apt.id});toast(trS('Video non salvato: riapri l’appartamento e riprova'));return;}
  if(!blob.size){logErr('video-vuoto','registrazione vuota',{tipo:tipo,dur:dur});toast(trS('Il video è vuoto: riprova oppure usa «Carica un video già fatto»'));return;}
  await caricaVideo(p2,REC.kind||'Video all’ingresso',blob,tipo,/mp4/.test(tipo)?'.mp4':'.webm',dur);}
+async function chiudiDopoVideo(kind){if(kind!=='Video dopo'||!S.apt||!isMan(S.apt))return;var pp=passOf(S.apt);if(!pp||pp.closed_at)return;
+ setTimeout(function(){var bc=document.getElementById('close');if(bc&&!bc.disabled){toast('Video finale arrivato: chiudo la manutenzione');bc.click();}},600);}
 async function caricaVideo(p2,kind2,blob,tipo,est,dur){var path=S.user.id+'/'+p2.id+'/'+(kind2==='Video all’ingresso'?'video_ingresso':kind2.replace(/[^a-z0-9]/gi,'_').toLowerCase())+est,err=null;
  S._vidUp=kind2;S._vidPend=null;render();
  for(var tv=0;tv<3;tv++){try{var up=await sb.storage.from('foto').upload(path,blob,{contentType:String(tipo).split(';')[0],upsert:true});if(up.error)throw up.error;
    S.photos[p2.id]=S.photos[p2.id]||{};var exv=S.photos[p2.id][kind2];
    if(!exv){var ins=await sb.from('photos').insert({passaggio_id:p2.id,user_id:S.user.id,kind:kind2,path:path}).select().single();if(ins.error)throw ins.error;S.photos[p2.id][kind2]=ins.data;}
    else if(exv.path!==path){var upv=await sb.from('photos').update({path:path}).eq('id',exv.id).select().single();if(!upv.error&&upv.data)S.photos[p2.id][kind2]=upv.data;}
-   S.photos[p2.id][kind2]._dur=dur;S._vidUp=null;render();toast(trS('Video salvato'));return true;}catch(e){err=e;await new Promise(function(r){setTimeout(r,2000*(tv+1))});}}
+   S.photos[p2.id][kind2]._dur=dur;S._vidUp=null;render();toast(trS('Video salvato'));chiudiDopoVideo(kind2);return true;}catch(e){err=e;await new Promise(function(r){setTimeout(r,2000*(tv+1))});}}
  S._vidUp=null;S._vidPend={pid:p2.id,kind:kind2,blob:blob,tipo:tipo,est:est,dur:dur};logErr('video-carica',err,{kind:kind2,mb:Math.round(blob.size/10485.76)/100,tipo:String(tipo)});render();toast(trS('Video non caricato: tocca «Riprova a caricare»'));return false;}
 // Manutenzioni nel programma (13/10): riga con segnalazione_id -> «Manutenzione 110 — lavandino», video prima e dopo, foto facoltative di materiale e scontrini
 SERVIZI.man={ico:'🔧',lock:false,costo:false,check:[],photos:['Video prima','Video dopo'],ask:'Inizi adesso la manutenzione?',tit:'Manutenzione',sub:'Premi «Inizia», fai il video prima di toccare qualcosa, ripara, poi fai il video dopo.',fnote:'Senza il video prima e il video dopo la manutenzione non si chiude. Le foto di materiale e scontrini sono facoltative.',ftit:null};
@@ -1511,7 +1513,7 @@ app.addEventListener('change',async function(e){
   S.photos[p2.id]=S.photos[p2.id]||{};
   if(!S.photos[p2.id][kind2]){var ins2=await sb.from('photos').insert({passaggio_id:p2.id,user_id:S.user.id,kind:kind2,path:path}).select().single();if(ins2.error)throw ins2.error;S.photos[p2.id][kind2]=ins2.data;}
   else if(S.photos[p2.id][kind2].path!==path&&isBoss()){var upP=await sb.from('photos').update({path:path,user_id:S.user.id}).eq('id',S.photos[p2.id][kind2].id).select().single();if(upP.error)throw upP.error;S.photos[p2.id][kind2]=upP.data;} // un responsabile sostituisce il video caricato da un altro
-  if(!isV)S.photos[p2.id][kind2]._url=URL.createObjectURL(blob);render();toast(isV?'Video salvato':'Foto '+kind2+' salvata');return;}
+  if(!isV)S.photos[p2.id][kind2]._url=URL.createObjectURL(blob);render();toast(isV?'Video salvato':'Foto '+kind2+' salvata');if(isV)chiudiDopoVideo(kind2);return;}
  if(t.id==='aq_foto'){var fq=t.files&&t.files[0];if(!fq)return;S.boss.afile=fq;render();return;}
  if(t.id==='aq_cl'){S.boss.af=S.boss.af||{};S.boss.af.aq_cl=t.value;S.boss.af.aq_apt='';render();return;}
  if(d.aqadd){var fa=t.files&&t.files[0];if(!fa)return;var bla=await shrink(fa,1600),patha=S.user.id+'/acquisti/'+Date.now()+'.jpg';var upa=await sb.storage.from('foto').upload(patha,bla,{contentType:'image/jpeg',upsert:true});if(upa.error)throw upa.error;
