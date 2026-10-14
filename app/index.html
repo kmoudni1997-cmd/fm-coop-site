@@ -548,7 +548,7 @@ function vConto(C){
  var L=C.conti||[];
  if(C.conto){var k=L.filter(function(x){return x.id===C.conto})[0];if(!k){C.conto=null;return vConto(C);}
   var st=CL_STATO[k.stato]||['grey',k.stato],D=k.dettaglio||{},S0=D.sezioni||[];
-  return '<div class="row" style="justify-content:space-between"><h1 style="margin:0">'+esc(D.titolo||clMese(k.mese))+'</h1><button class="mini" data-cconto="close">← Indietro</button></div>'+
+  return '<div class="row" style="justify-content:space-between"><h1 style="margin:0">'+esc(D.titolo||clMese(k.mese))+'</h1><span class="row" style="gap:6px"><button class="mini" data-ccpdf="'+k.id+'">📄 PDF</button><button class="mini" data-ccxls="'+k.id+'">📊 Excel</button><button class="mini" data-cconto="close">← Indietro</button></span></div>'+
    '<div class="card" style="text-align:center"><p class="note" style="margin:0">Totale del mese</p><div style="font-size:30px;font-weight:800;margin:6px 0">'+ceur(Number(k.totale))+'</div><span class="pill '+st[0]+'">'+st[1]+'</span>'+(k.scadenza?'<p class="note" style="margin:8px 0 0">Scadenza: '+pdate(k.scadenza).fmD()+'</p>':'')+'</div>'+
    S0.map(function(s){return '<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">'+esc(s.nome)+'</h2><b>'+ceur(s.totale)+'</b></div>'+
     (s.voci||[]).filter(function(v){return v.importo}).map(function(v){return '<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><span style="flex:1">'+esc(v.voce)+'</span><span>'+ceur(v.importo)+'</span></div>'}).join('')+
@@ -1271,6 +1271,19 @@ app.addEventListener('click',async function(e){
  if(d.ccancel){S.cl.edit=null;render();return;}
  if(d.csave){var nv=document.getElementById('cc_'+d.csave).value.trim();if(!nv){toast('Scrivi il codice');return;}S.busy=true;render();var rs=await sb.rpc('cliente_aggiorna_codice',{p_apt:Number(d.csave),p_testo:nv});S.busy=false;if(rs.error)throw rs.error;S.cl.edit=null;S.cl.apts=null;render();toast('Codice aggiornato: lo vedono subito le operatrici');return;}
  if(d.ctab){S.cl.tab=d.ctab;S.cl.det=null;S.cl.conto=null;render();window.scrollTo(0,0);return;}
+ if(d.ccpdf||d.ccxls){var kk=((S.cl&&S.cl.conti)||[]).filter(function(x){return String(x.id)===String(d.ccpdf||d.ccxls)})[0];if(!kk)return;var DD=kk.dettaglio||{},nomeM=DD.titolo||clMese(kk.mese),cliN=(S.profile&&S.profile.client)||'';
+  if(d.ccpdf){var stK=CL_STATO[kk.stato];var corpo='<p class="fine">Totale del mese: <b>'+ceur(Number(kk.totale))+'</b>'+(stK?' · '+esc(stK[1]):'')+(kk.scadenza?' · scadenza '+pdate(kk.scadenza).toLocaleDateString('it-IT'):'')+' <span class="note">(IVA esclusa)</span></p>'+
+    (DD.sezioni||[]).map(function(sz){var V=(sz.voci||[]).filter(function(v){return v.importo});return '<h2 style="font-size:14px;margin:16px 0 6px">'+esc(sz.nome)+' — '+ceur(sz.totale)+'</h2>'+
+     (V.length?'<table><thead><tr><th>Voce</th><th style="width:120px">Importo</th></tr></thead><tbody>'+V.map(function(v){return '<tr><td>'+esc(v.voce)+'</td><td class="n">'+ceur(v.importo)+'</td></tr>'}).join('')+'</tbody></table>':'')+
+     ((sz.giorni||[]).length?'<table style="margin-top:6px"><thead><tr><th style="width:90px">Giorno</th><th>Cosa</th><th style="width:120px">Importo</th></tr></thead><tbody>'+sz.giorni.map(function(g){return (g.righe||[]).map(function(r,i){return '<tr><td>'+(i?'':esc(pdate(g.data).toLocaleDateString('it-IT')))+'</td><td>'+esc(r.cosa)+'</td><td class="n">'+ceur(r.importo)+'</td></tr>'}).join('')+'<tr class="tot"><td></td><td>Totale del giorno</td><td class="n">'+ceur(g.totale)+'</td></tr>'}).join('')+'</tbody></table>':'')}).join('')+
+    (kk.note?'<p class="note">'+esc(kk.note)+'</p>':'');
+   stampa('Conto '+nomeM+(cliN?' — '+cliN:''),corpo);return;}
+  var AA=[['Conto '+nomeM+(cliN?' — '+cliN:'')],['Totale del mese (IVA esclusa)','',Number(kk.totale)],[]];
+  (DD.sezioni||[]).forEach(function(sz){AA.push([sz.nome,'',Number(sz.totale)]);(sz.voci||[]).forEach(function(v){if(v.importo)AA.push(['',v.voce,Number(v.importo)])});AA.push([]);AA.push(['Giorno','Cosa','Importo']);
+   (sz.giorni||[]).forEach(function(g){(g.righe||[]).forEach(function(r,i){AA.push([i?'':pdate(g.data),r.cosa,Number(r.importo)])});AA.push(['','Totale del giorno',Number(g.totale)]);});AA.push([]);});
+  var salvaC=function(){var ws=XLSX.utils.aoa_to_sheet(AA,{cellDates:true});ws['!cols']=[{wch:30},{wch:60},{wch:14}];Object.keys(ws).forEach(function(c){if(c[0]==='!')return;var x=ws[c];if(x.t==='d')x.z='dd/mm/yyyy';if(x.t==='n')x.z='#,##0.00 "€"';});
+   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Conto');XLSX.writeFile(wb,'Conto '+(cliN?cliN+' - ':'')+nomeM+'.xlsx');};
+  if(window.XLSX){salvaC();return;}var scC=document.createElement('script');scC.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';scC.onload=salvaC;scC.onerror=function(){toast('Non riesco a creare il file Excel, riprova');};document.head.appendChild(scC);return;}
  if(d.cconto){S.cl.conto=d.cconto==='close'?null:Number(d.cconto);render();window.scrollTo(0,0);return;}
  if(d.cnav!==undefined){var cn=Number(d.cnav);S.cl.date=cn===0?todayStr():addDays(S.cl.date,cn);S.cl.det=null;await loadClient();render();return;}
  if(d.cdet){S.cl.det=d.cdet==='close'?null:Number(d.cdet);render();window.scrollTo(0,0);return;}
