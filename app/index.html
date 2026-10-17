@@ -551,24 +551,29 @@ async function loadClient(){var C=S.cl;
   var bic=await sb.rpc('biancheria_cliente');C.bia=bic.error?[]:(bic.data||[]);await biaUrls(C.bia);
  var lo=await sb.rpc('lavori_a_ore');C.aOre={};(lo.data||[]).forEach(function(x){C.aOre[x.apt_id]=x});
  var co=await sb.from('conti_clienti').select('id,mese,stato,totale,dettaglio,note,scadenza,aggiornato').order('mese',{ascending:false});C.conti=co.error?[]:(co.data||[]);
+  if(clEcon()){var cic=await sb.rpc('conto_in_corso');if(cic.error)logErr('conto-in-corso',cic.error);else if(cic.data){var KL=cic.data,giaP=C.conti.some(function(x){return String(x.mese).slice(0,7)===String(KL.mese).slice(0,7)});if(!giaP)C.conti.unshift({id:-1,mese:KL.mese,stato:'in_corso',totale:KL.totale,dettaglio:KL.dettaglio,note:CONTO_LIVE_NOTA,aggiornato:KL.aggiornato});}}
 }
 // Scheda «Conto» dei clienti: i conti mensili li pubblica FM NEXUS (pubblica_conto.py), il cliente legge solo i suoi.
-var CL_STATO={da_pagare:['warn','Da pagare'],pagato:['ok','Pagato'],in_preparazione:['grey','In preparazione']};
+var CONTO_LIVE_NOTA='Conto provvisorio: si aggiorna da solo appena un lavoro è confermato (pulizia chiusa, lavoro a ore, extra). Il riepilogo definitivo arriva a fine mese.';
+var CL_STATO={in_corso:['warn','In corso · provvisorio'],da_pagare:['warn','Da pagare'],pagato:['ok','Pagato'],in_preparazione:['grey','In preparazione']};
 function clMese(s){var d=pdate(s);var t=d.toLocaleDateString('it-IT',{month:'long',year:'numeric'});return t.charAt(0).toUpperCase()+t.slice(1);}
 function ceur(n){n=Number(n);if(isNaN(n))return '–';var s=Math.abs(n).toFixed(2).split('.');return (n<0?'-':'')+s[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+s[1]+' €';}
-function vConto(C){
- var L=C.conti||[];
- if(C.conto){var k=L.filter(function(x){return x.id===C.conto})[0];if(!k){C.conto=null;return vConto(C);}
+function contoDett(k,testa){
   var st=CL_STATO[k.stato]||['grey',k.stato],D=k.dettaglio||{},S0=D.sezioni||[];
-  return '<div class="row" style="justify-content:space-between"><h1 style="margin:0">'+esc(D.titolo||clMese(k.mese))+'</h1><span class="row" style="gap:6px"><button class="mini" data-ccpdf="'+k.id+'">📄 PDF</button><button class="mini" data-ccxls="'+k.id+'">📊 Excel</button><button class="mini" data-cconto="close">← Indietro</button></span></div>'+
-   '<div class="card" style="text-align:center"><p class="note" style="margin:0">Totale del mese</p><div style="font-size:30px;font-weight:800;margin:6px 0">'+ceur(Number(k.totale))+'</div><span class="pill '+st[0]+'">'+st[1]+'</span>'+(k.scadenza?'<p class="note" style="margin:8px 0 0">Scadenza: '+pdate(k.scadenza).fmD()+'</p>':'')+'</div>'+
+  return '<div class="row" style="justify-content:space-between"><h1 style="margin:0">'+esc(D.titolo||clMese(k.mese))+'</h1>'+(testa!=null?testa:'<span class="row" style="gap:6px"><button class="mini" data-ccpdf="'+k.id+'">📄 PDF</button><button class="mini" data-ccxls="'+k.id+'">📊 Excel</button><button class="mini" data-cconto="close">← Indietro</button></span>')+'</div>'+
+   '<div class="card" style="text-align:center"><p class="note" style="margin:0">'+(k.stato==='in_corso'?'Totale finora':'Totale del mese')+'</p><div style="font-size:30px;font-weight:800;margin:6px 0">'+ceur(Number(k.totale))+'</div><span class="pill '+st[0]+'">'+st[1]+'</span>'+(k.scadenza?'<p class="note" style="margin:8px 0 0">Scadenza: '+pdate(k.scadenza).fmD()+'</p>':'')+'</div>'+
    S0.map(function(s){return '<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">'+esc(s.nome)+'</h2><b>'+ceur(s.totale)+'</b></div>'+
     (s.voci||[]).filter(function(v){return v.importo}).map(function(v){return '<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><span style="flex:1">'+esc(v.voce)+'</span><span>'+ceur(v.importo)+'</span></div>'}).join('')+
     '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--mute)">Giorno per giorno ('+(s.giorni||[]).length+' giorni)</summary>'+
     (s.giorni||[]).map(function(g){return '<div style="padding:8px 0;border-top:1px solid var(--line)"><div class="row" style="justify-content:space-between"><b>'+esc(dlong(g.data))+'</b><b>'+ceur(g.totale)+'</b></div>'+
      g.righe.map(function(r){return '<div style="display:flex;gap:10px;font-size:14px;padding:2px 0;'+(r.extra?'color:var(--mute)':'')+'"><span style="flex:1">'+esc(r.cosa)+'</span><span>'+ceur(r.importo)+'</span></div>'}).join('')+'</div>'}).join('')+
     '</details></div>'}).join('')+
-   (k.note?'<p class="note">'+esc(k.note)+'</p>':'')+'<p class="note">Aggiornato il '+new Date(k.aggiornato).fmD()+'</p>';
+   (k.note?'<p class="note">'+esc(k.note)+'</p>':'')+'<p class="note">Aggiornato il '+new Date(k.aggiornato).fmD()+(k.stato==='in_corso'?' alle '+hm(k.aggiornato):'')+'</p>';
+}
+function vConto(C){
+ var L=C.conti||[];
+ if(C.conto){var k=L.filter(function(x){return x.id===C.conto})[0];if(!k){C.conto=null;return vConto(C);}
+  return contoDett(k);
  }
  return '<h1>Conto</h1>'+(L.length?L.map(function(k){var st=CL_STATO[k.stato]||['grey',k.stato];return '<button class="apt" data-cconto="'+k.id+'"><span class="dot '+(k.stato==='pagato'?'done':k.stato==='da_pagare'?'doing':'todo')+'"></span><span><span class="n">'+esc(clMese(k.mese))+'</span><br><span class="s">'+st[1]+'</span></span><span class="t"><b>'+ceur(Number(k.totale))+'</b></span></button>'}).join(''):'<div class="card">Nessun conto pubblicato per ora.</div>');
 }
@@ -875,7 +880,9 @@ function vConti(B){var cm=B.cm||meseDi(todayStr());
  if(!B.conti){if(!B.contiLoading)loadConti().then(render).catch(fail);return h+'</div><div class="card"><span class="spin"></span> carico i passaggi del mese…</div>';}
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.client&&a.active&&clienti.indexOf(a.client)<0)clienti.push(a.client)});clienti.sort();var cl=B.ccl&&clienti.indexOf(B.ccl)>=0?B.ccl:(clienti.indexOf('Immobili e Soluzioni')>=0?'Immobili e Soluzioni':clienti[0]);B.ccl=cl;
  h+='<select data-ccl="1" style="width:auto;padding:6px">'+clienti.map(function(c){return '<option '+(c===cl?'selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select><button class="mini" data-ccsv="1">Scarica Excel</button><button class="mini" data-ccsv="pdf">Scarica PDF</button></div><p class="note" style="margin:8px 0 0">Si riempie da solo: un appartamento entra appena l’operatrice chiude il passaggio, oppure se è confermato sul gruppo WhatsApp «FM programma». '+esc(contoCliente(B,cl).nota)+'</p></div>';
- var K=contoCliente(B,cl);
+ if(B.cvcl&&B.cvcl.cl===cl&&B.cvcl.m===cm)return h+contoDett(B.cvcl.k,'<button class="mini" data-cvcl="0">← Torna ai conteggi</button>');
+  h+='<button class="btn ghost" data-cvcl="1" style="margin-bottom:12px">👁 Vedi il conto come lo vede il cliente</button>';
+  var K=contoCliente(B,cl);
  h+='<div class="stat"><div><b>'+K.righe.length+'</b><span>passaggi chiusi</span></div><div><b>'+eur(K.totale)+'</b><span>totale finora</span></div><div><b>'+K.prev+'</b><span>ancora in programma (≈ '+eur(K.prevEur)+')</span></div>'+(K.nonChiusi.length?'<div><b style="color:var(--bad)">'+K.nonChiusi.length+'</b><span>passati ma non chiusi nell’app</span></div>':'')+'</div>';
  if(K.manca)h+='<p class="warnbox">⚠ '+K.manca+' passaggi senza prezzo: mettilo in Gestione › Appartamenti › Mostra costi.</p>';
  if(K.nonChiusi.length)h+='<div class="card"><h2>Da controllare</h2><p class="note">Erano in programma ma nessuno li ha chiusi nell’app, quindi NON sono nel conto. Se sono stati fatti, chiudili con «Fai tu».</p><p style="margin:6px 0 0">'+K.nonChiusi.map(esc).join(' · ')+'</p></div>';
@@ -1491,7 +1498,9 @@ app.addEventListener('click',async function(e){
   if(r1.error){S.busy=false;render();throw r1.error;}
   if(xo){var r2=await sb.from('lavori_manuali').insert({day:xd,user_id:xo,apt_id:xa,descr:'Extra: '+xs,ore:Number(xh),ordine:90,fonte:'extra dal pannello'});if(r2.error){S.busy=false;render();throw r2.error;}}
   S.busy=false;S.boss.xform=false;S.boss.xpre=null;S.boss.conti=null;S.boss.paghe=null;render();toast(xi===''?'Extra salvato: lo prezza Karim':'Extra salvato');return;}
- if(d.cmese){var cmm=S.boss.cm||meseDi(todayStr());var y=Number(cmm.slice(0,4)),m=Number(cmm.slice(5,7))+Number(d.cmese);var dd=new Date(y,m-1,1);S.boss.cm=dd.getFullYear()+'-'+pad2(dd.getMonth()+1);S.boss.conti=null;render();return;}
+ if(d.cvcl!==undefined){var Bv=S.boss;if(d.cvcl==='0'){Bv.cvcl=null;render();return;}var cmv=Bv.cm||meseDi(todayStr());var rv=await sb.rpc('conto_in_corso',{p_client:Bv.ccl,p_mese:cmv+'-01'});if(rv.error)throw rv.error;
+   Bv.cvcl={cl:Bv.ccl,m:cmv,k:{id:-1,mese:rv.data.mese,stato:'in_corso',totale:rv.data.totale,dettaglio:rv.data.dettaglio,aggiornato:rv.data.aggiornato,note:'Così lo vede il responsabile del cliente: entrano solo i lavori confermati e con il prezzo.'}};render();window.scrollTo(0,0);return;}
+  if(d.cmese){var cmm=S.boss.cm||meseDi(todayStr());var y=Number(cmm.slice(0,4)),m=Number(cmm.slice(5,7))+Number(d.cmese);var dd=new Date(y,m-1,1);S.boss.cm=dd.getFullYear()+'-'+pad2(dd.getMonth()+1);S.boss.conti=null;render();return;}
  if(d.cxadd){var cd=document.getElementById('cx_day').value,cs=document.getElementById('cx_desc').value.trim(),cv=document.getElementById('cx_imp').value,ca=document.getElementById('cx_apt').value;if(!cd||!cs){toast('Scrivi data e cosa');return;}var rx=await sb.from('extra_clienti').insert({day:cd,client:S.boss.ccl,apt_id:ca?Number(ca):null,descrizione:cs,importo:cv===''?null:Number(cv),fonte:'app'});if(rx.error)throw rx.error;await loadConti();render();toast(cv===''?'Extra aggiunto, da prezzare':'Extra aggiunto');return;}
  if(d.cxprezzo){var vp=document.getElementById('cxp_'+d.cxprezzo).value;if(vp===''){toast('Scrivi il prezzo');return;}var ru=await sb.from('extra_clienti').update({importo:Number(vp)}).eq('id',d.cxprezzo);if(ru.error)throw ru.error;await loadConti();render();toast('Prezzo salvato');return;}
  if(d.cxdel){var rd=await sb.from('extra_clienti').delete().eq('id',d.cxdel);if(rd.error)throw rd.error;await loadConti();render();return;}
