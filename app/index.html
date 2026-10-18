@@ -856,6 +856,7 @@ function contoCliente(B,cl){var R=REGOLE_CONTI[cl]||{},visti={},righe=[],tot=0,m
   if(prezzo==null&&isServ(a)){delete visti[k];return;}if(prezzo==null)manca++;
   var osp=(p.program&&p.program.guests)||null;var rz=(R.zone&&R.zone[a.zone])||R;var bianch=0;
   if(rz.bianchPersona&&!isServ(a)){bianch=rz.bianchPersona*(osp||a.guests||0);}
+   if(c.biancheria_extra_prezzo!=null&&c.biancheria_inclusa!=null&&oraria==null&&!isServ(a))bianch+=Math.max(0,Number(osp||0)-Number(c.biancheria_inclusa))*Number(c.biancheria_extra_prezzo); // biancheria compresa per N persone, oltre a persona
   var riga=(prezzo||0)+bianch;if(R.tetto&&riga>R.tetto){bianch=Math.max(0,R.tetto-(prezzo||0));riga=R.tetto;}
   if(oraria!=null)bianch=0,riga=prezzo||0;
   righe.push({day:p.day,app:a.name,osp:osp,prezzo:prezzo,bianch:bianch,tot:riga,tetto:!!(R.tetto&&riga===R.tetto),oraria:oraria,ore:ore,alMin:alMin});tot+=riga;});
