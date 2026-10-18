@@ -839,20 +839,21 @@ function meseDi(d){return d.slice(0,7);}
 function meseRange(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));var a=new Date(y,mm-1,1),b=new Date(y,mm,0);return [dstr(a),dstr(b)];}
 function meseNome(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));return new Date(y,mm-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'});}
 async function loadConti(){var B=S.boss;B.cm=B.cm||meseDi(todayStr());var r=meseRange(B.cm);B.contiLoading=true;
- var ps=await sb.from('passaggi').select('id,day,started_at,closed_at,fermato_at,apt_id,program_id,bianch_lasciati,bianch_ritirati,program(guests,segnalazione_id),apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('closed_at','is',null).order('day');if(ps.error)throw ps.error;
- var pr=await sb.from('program').select('id,day,apt_id,guests,apartments(name,client,zone,size)').gte('day',r[0]).lte('day',r[1]).eq('kind','lavoro').is('segnalazione_id',null);if(pr.error)throw pr.error;
+ var ps=await sb.from('passaggi').select('id,day,started_at,closed_at,fermato_at,apt_id,program_id,bianch_lasciati,bianch_ritirati,program(guests,segnalazione_id,prezzo),apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('closed_at','is',null).order('day');if(ps.error)throw ps.error;
+ var pr=await sb.from('program').select('id,day,apt_id,guests,prezzo,apartments(name,client,zone,size)').gte('day',r[0]).lte('day',r[1]).eq('kind','lavoro').is('segnalazione_id',null);if(pr.error)throw pr.error;
  var ex=await sb.from('extra_clienti').select('*, apartments(name)').gte('day',r[0]).lte('day',r[1]).order('day');if(ex.error)throw ex.error;
  // lavori confermati sul gruppo WhatsApp «FM programma» (lavori_manuali): contano come chiusi anche se nell'app non lo sono
  var lm=await sb.from('lavori_manuali').select('day,apt_id,descr,fonte,apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('apt_id','is',null);if(lm.error)throw lm.error;
  var pass=(ps.data||[]).filter(function(x){return !(x.program&&x.program.segnalazione_id)}),gia={};pass.forEach(function(x){gia[x.day+'|'+x.apt_id]=1});
  (lm.data||[]).forEach(function(m){if(/extra|ripasso/i.test(m.descr||'')||/^app/.test(m.fonte||''))return; // ore extra e ripassi sono negli extra, non sono passaggi
-  var k=m.day+'|'+m.apt_id;if(gia[k])return;gia[k]=1;var g=(pr.data||[]).filter(function(x){return x.day===m.day&&x.apt_id===m.apt_id&&x.guests})[0];pass.push({day:m.day,apt_id:m.apt_id,apartments:m.apartments,program:{guests:g?g.guests:null},chat:true});});
+  var k=m.day+'|'+m.apt_id;if(gia[k])return;gia[k]=1;var g=(pr.data||[]).filter(function(x){return x.day===m.day&&x.apt_id===m.apt_id&&x.guests})[0];var gp=(pr.data||[]).filter(function(x){return x.day===m.day&&x.apt_id===m.apt_id&&x.prezzo!=null})[0];pass.push({day:m.day,apt_id:m.apt_id,apartments:m.apartments,program:{guests:g?g.guests:null,prezzo:gp?gp.prezzo:null},chat:true});});
  pass.sort(function(a,b){return a.day<b.day?-1:a.day>b.day?1:0});
  B.conti={pass:pass,prog:pr.data||[],extra:ex.data||[]};B.contiLoading=false;}
 function contoCliente(B,cl){var R=REGOLE_CONTI[cl]||{},visti={},righe=[],tot=0,manca=0;
  (B.conti.pass||[]).forEach(function(p){var a=p.apartments||{};if(a.client!==cl)return;var k=p.day+'|'+p.apt_id;if(visti[k])return;visti[k]=1;
   var c=(B.costi||{})[p.apt_id]||{},prezzo=c.prezzo_cliente!=null?Number(c.prezzo_cliente):null,oraria=c.prezzo_ora!=null?Number(c.prezzo_ora):null,ore=null;
   var alMin=false;if(oraria!=null){if(p.started_at&&p.closed_at){ore=durMin(p)/60;prezzo=Math.round(ore*oraria*100)/100;if(c.minimo!=null&&prezzo<Number(c.minimo)){prezzo=Number(c.minimo);alMin=true;}}else prezzo=null;}
+  var ppr=p.program&&p.program.prezzo;if(ppr!=null){if(Number(ppr)===0){delete visti[k];return;}prezzo=Number(ppr);oraria=null;ore=null;alMin=false;} // prezzo concordato per quel lavoro (0 = non si addebita)
   if(prezzo==null&&isServ(a)){delete visti[k];return;}if(prezzo==null)manca++;
   var osp=(p.program&&p.program.guests)||null;var rz=(R.zone&&R.zone[a.zone])||R;var bianch=0;
   if(rz.bianchPersona&&!isServ(a)){bianch=rz.bianchPersona*(osp||a.guests||0);}
@@ -861,7 +862,7 @@ function contoCliente(B,cl){var R=REGOLE_CONTI[cl]||{},visti={},righe=[],tot=0,m
   if(oraria!=null)bianch=0,riga=prezzo||0;
   righe.push({day:p.day,app:a.name,osp:osp,prezzo:prezzo,bianch:bianch,tot:riga,tetto:!!(R.tetto&&riga===R.tetto),oraria:oraria,ore:ore,alMin:alMin});tot+=riga;});
  var chiusi={};righe.forEach(function(x){chiusi[x.day+'|'+x.app]=1});
- var oggi=todayStr(),prev=0,prevEur=0,nonChiusi=[];(B.conti.prog||[]).forEach(function(x){var a=x.apartments||{};if(a.client!==cl||isServ(a))return;if(chiusi[x.day+'|'+a.name])return;var c=(B.costi||{})[x.apt_id]||{};if(x.day<oggi)nonChiusi.push(x.day+'|'+a.name);else{prev++;prevEur+=Number(c.prezzo_cliente||0);}});
+ var oggi=todayStr(),prev=0,prevEur=0,nonChiusi=[];(B.conti.prog||[]).forEach(function(x){var a=x.apartments||{};if(a.client!==cl||isServ(a))return;if(x.prezzo!=null&&Number(x.prezzo)===0)return;if(chiusi[x.day+'|'+a.name])return;var c=(B.costi||{})[x.apt_id]||{};if(x.day<oggi)nonChiusi.push(x.day+'|'+a.name);else{prev++;prevEur+=Number(c.prezzo_cliente||0);}});
  nonChiusi=nonChiusi.sort().map(function(z){return z.slice(8,10)+'/'+z.slice(5,7)+' '+z.slice(11)});var ex=(B.conti.extra||[]).filter(function(e){return e.client===cl});var totEx=ex.reduce(function(s,e){return s+(e.importo==null?0:Number(e.importo))},0);var daPrezzare=ex.filter(function(e){return e.importo==null}).length;
  var em=R.extraMese?R.extraMese.importo:0;
  return {righe:righe,tot:tot,extra:ex,totEx:totEx,daPrezzare:daPrezzare,extraMese:R.extraMese,totale:tot+totEx+em,manca:manca,prev:prev,prevEur:prevEur,nonChiusi:nonChiusi,nota:R.nota||'Prezzo del passaggio da Gestione. Biancheria non conteggiata.'};}
