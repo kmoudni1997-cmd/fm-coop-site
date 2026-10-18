@@ -938,7 +938,10 @@ function kmGiro(items,ott){if(ott){var U=[DEPOSITO];items.forEach(function(i){if
 async function loadPaghe(P,mese,uid){var r=meseRange(mese);P.loading=true;var x=await sb.rpc('paghe_dati',{p_da:r[0],p_a:r[1],p_user:uid||null});P.loading=false;if(x.error)throw x.error;P.data=x.data;P.mese=mese;}
 var ORE_APP=['rosa','jiya','gedara']; // usavano già l'app: anche prima dell'11/10 contano le ore vere
 // ore vere: inizio -> chiusura (o blocco), tetto tempo massimo + fondo + 15 min; i minuti sovrapposti si contano una volta
-function oreVere(ps){var iv=[];ps.forEach(function(q){if(!q.closed_at)return;var a=new Date(q.started_at).getTime(),b=new Date(q.closed_at).getTime();if(q.fermato_at)b=Math.min(b,new Date(q.fermato_at).getTime());b=Math.min(b,a+((q.max_min||90)+(q.extra_min||0)+MARGINE_STOP)*60000);if(b>a)iv.push([a,b]);});
+// Karim 18/10: per queste persone, fino al giorno indicato, si conta l'orario preciso (niente tetto)
+var ORE_SENZA_TETTO={rosa:'2026-10-31'};
+function senzaTetto(uid,d){var u=((S.boss&&S.boss.ops)||[]).filter(function(o){return o.id===uid})[0]||(S.profile&&S.profile.id===uid?S.profile:null);var lim=u&&ORE_SENZA_TETTO[u.username];return !!(lim&&d<=lim);}
+function oreVere(ps,libero){var iv=[];ps.forEach(function(q){if(!q.closed_at)return;var a=new Date(q.started_at).getTime(),b=new Date(q.closed_at).getTime();if(q.fermato_at)b=Math.min(b,new Date(q.fermato_at).getTime());if(!libero)b=Math.min(b,a+((q.max_min||90)+(q.extra_min||0)+MARGINE_STOP)*60000);if(b>a)iv.push([a,b]);});
  iv.sort(function(x,y){return x[0]-y[0]});var tot=0,cs=null,ce=null;iv.forEach(function(v){if(cs===null){cs=v[0];ce=v[1];}else if(v[0]<=ce){ce=Math.max(ce,v[1]);}else{tot+=ce-cs;cs=v[0];ce=v[1];}});if(cs!==null)tot+=ce-cs;return tot/3600000;}
 function oreItem(it,oreApp){if(/non pagat/i.test(it.n))return 0;if(oreApp&&/ore vere/.test(it.f||''))return Number(it.ore||0);
  if(it.ore!=null&&(!it.apt_id||/extra|ripasso|\bore\b|\bora\b/i.test(it.n)))return Number(it.ore);
@@ -952,10 +955,10 @@ function giorniPaghe(D,uid,haCar,oreApp){var days={};function g(d){return days[d
   if(d<PAGHE_ORE_DAL){
    // prima dell'app: ore = compenso dell'appartamento / paga oraria netta (metà se in due); ore scritte e ore vere restano
    if(usaMan)ore=items.reduce(function(t,it){return t+oreItem(it,oreApp)},0);
-   else if(oreApp){ore=oreVere(G.pas);aperti=G.pas.filter(function(q){return !q.closed_at}).length;}
+   else if(oreApp){ore=oreVere(G.pas,senzaTetto(uid,d));aperti=G.pas.filter(function(q){return !q.closed_at}).length;}
    else{ore=G.pas.reduce(function(t,q){if(q.code==='spazzcor'||/^cons_/.test(q.code||'')||/non pagat/i.test(q.note||''))return t;if(q.ore_comp!=null)return t+q.ore_comp*(q.condiviso?0.5:1);return t+(q.closed_at?Math.min(durMin(q),(q.max_min||90)+(q.extra_min||0)+MARGINE_STOP)/60:0);},0);aperti=G.pas.filter(function(q){return !q.closed_at}).length;}
   }
-  else if(!usaMan){ore=oreVere(G.pas);aperti=G.pas.filter(function(q){return !q.closed_at}).length;}
+  else if(!usaMan){ore=oreVere(G.pas,senzaTetto(uid,d));aperti=G.pas.filter(function(q){return !q.closed_at}).length;}
   else{var o=items.filter(function(i){return i.ore!=null});if(o.length)ore=o.reduce(function(t,i){return t+Number(i.ore)},0);}
   var park=(D.spese||[]).filter(function(x){return x.user_id===uid&&x.day===d}).reduce(function(t,x){return t+Number(x.importo)},0);
   var kg=haCar?kmGiro(items,d>=GIRO_OTT_DAL):null,km=(kg&&typeof kg==='object')?kg.km:kg,via=(kg&&typeof kg==='object')?kg.min:(kg===0?0:null);
