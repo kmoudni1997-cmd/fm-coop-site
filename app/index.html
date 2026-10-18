@@ -577,7 +577,8 @@ function vConto(C){
  }
  return '<h1>Conto</h1>'+(L.length?L.map(function(k){var st=CL_STATO[k.stato]||['grey',k.stato];return '<button class="apt" data-cconto="'+k.id+'"><span class="dot '+(k.stato==='pagato'?'done':k.stato==='da_pagare'?'doing':'todo')+'"></span><span><span class="n">'+esc(clMese(k.mese))+'</span><br><span class="s">'+st[1]+'</span></span><span class="t"><b>'+ceur(Number(k.totale))+'</b></span></button>'}).join(''):'<div class="card">Nessun conto pubblicato per ora.</div>');
 }
-function clStato(p){if(!p||!p.started_at)return ['grey','Da fare'];if(p.closed_at)return ['ok','Finito alle '+hm(p.closed_at)];return ['warn','In corso dalle '+hm(p.started_at)];}
+// Karim 18/10: il cliente non vede gli orari delle pulizie, solo lo stato (lavori a ore e manutenzioni li mostrano a parte)
+function clStato(p){if(!p||!p.started_at)return ['grey','Da fare'];if(p.closed_at)return ['ok','Fatto'];return ['warn','In corso'];}
 function clFotoSeg(s){return s.photo_path?'<div class="thumbs" data-sphoto="'+esc(s.photo_path)+'"></div>':'';}
 function pvBox(s,perCliente){if(!s.prev_stato)return '';var dt=function(x){return x?new Date(x).fmD():''};
  var st=s.prev_stato==='proposto'?'<span class="pill warn">'+(perCliente?'Da approvare':'⏳ In attesa del cliente')+'</span>':s.prev_stato==='approvato'?'<span class="pill ok">✅ Approvato il '+dt(s.prev_risposta_at)+'</span>':'<span class="pill bad">❌ Rifiutato il '+dt(s.prev_risposta_at)+'</span>';
