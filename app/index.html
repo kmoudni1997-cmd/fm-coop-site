@@ -371,6 +371,29 @@ img.av{background:none;border-radius:0}
 @keyframes fCad{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(105vh) rotate(540deg)}}
 @keyframes fPop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
 @keyframes fIn{from{opacity:0}to{opacity:1}}
+
+/* 21/10 check-list a stanze */
+.steps{position:sticky;top:56px;z-index:4;display:flex;align-items:center;gap:0;background:var(--bg,#f3f4f6);padding:8px 2px 10px;margin:-4px 0 6px;overflow-x:auto;scrollbar-width:none}
+.steps::-webkit-scrollbar{display:none}
+.stp{flex:none;position:relative;width:46px;height:46px;border-radius:999px;border:2px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.stp .smi{width:28px;height:28px;opacity:.55;filter:grayscale(.6)}
+.stp i{position:absolute;bottom:-6px;right:-6px;font-style:normal;font-size:10px;font-weight:800;background:var(--card);border:1px solid var(--line);border-radius:999px;min-width:18px;height:18px;line-height:16px;padding:0 4px;color:var(--mute)}
+.stp.ok{border-color:#2E8B57;background:#eaf6ee}.stp.ok .smi{opacity:1;filter:none}.stp.ok i{background:#2E8B57;border-color:#2E8B57;color:#fff}
+.stl{flex:1 0 10px;height:3px;background:var(--line);border-radius:3px;margin:0 3px;min-width:8px}
+.ckc{scroll-margin-top:120px}
+#fotoobb{scroll-margin-top:120px}
+.ckh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ckh h2{margin:0;flex:1}
+.rmi{width:40px;height:40px;flex:none}
+.ckn{font-size:12px;font-weight:800;color:var(--mute);background:var(--tap);border-radius:999px;padding:2px 8px}
+.cko{display:none}.cki{width:26px;height:26px}
+.ckc.closed{background:#eaf6ee;border-color:#9fd3b2;padding-top:10px;padding-bottom:10px}
+.ckc.closed .ckh{margin-bottom:0}
+.ckc.closed .rmi{width:30px;height:30px}
+.ckc.closed .ckn{display:none}.ckc.closed .cko{display:inline-flex}
+.ckc.closed:not(.aperta) .voci{display:none}
+.ckc.closed .grp-ok{border-top:0;margin-top:2px;padding-top:4px}
+.sli{width:34px;height:34px}
 </style>
 </head>
 <body>
@@ -1105,17 +1128,23 @@ function vApt(){if(isMan(S.apt))return vMan();
  (p&&!closed&&!sv?blCard(pr):'')+(closed?'<div class="card closed">✔ Passaggio chiuso alle '+hm(p.closed_at)+' · durata '+fmt(durMin(p))+(p.over_by_min>0?' · oltre di '+fmt(p.over_by_min):'')+'</div>':'');
  return topbar(esc(a.name),'<button data-go="oggi">‹ Oggi</button>')+shellOp('oggi',body,'narrow')+bar;
 }
+// 21/10: icona di ogni stanza della check-list (se l'icona 3D nuova non c'è ancora, quella di ripiego)
+var ROOM_ICO=[[/ingresso/i,'ingresso','porta'],[/cucina/i,'cucina','prodotti'],[/bagno/i,'bagno','fondo'],[/camera|letto/i,'letto','letto'],[/generale/i,'pulizia','pulizia'],[/rifinitur/i,'controllo','controllo'],[/spazzatura/i,'rifiuti','rifiuti'],[/comuni/i,'palazzo','palazzo'],[/ufficio/i,'archivio','archivio']];
+function roomIco(nm,cls){for(var i=0;i<ROOM_ICO.length;i++)if(ROOM_ICO[i][0].test(nm))return '<img class="'+(cls||'rmi')+'" src="icone/'+ROOM_ICO[i][1]+'.png" alt="" onerror="this.onerror=null;this.src=\'icone/'+ROOM_ICO[i][2]+'.png\'">';return mIco('pulizia',cls||'rmi');}
+function ckSteps(CK,st,nf,NF){return '<div class="steps">'+CK.map(function(r,ri){var ok=r.items.every(function(_,ii){return st[ri+'-'+ii]});return '<button class="stp'+(ok?' ok':'')+'" id="stp'+ri+'" data-ckgo="ck'+ri+'">'+roomIco(r.room,'smi')+'<i>'+(ri+1)+'</i></button>'}).join('<span class="stl"></span>')+
+ (NF?'<span class="stl"></span><button class="stp'+(nf>=NF?' ok':'')+'" data-ckgo="fotoobb">'+mIco('foto','smi')+'<i>'+nf+'/'+NF+'</i></button>':'')+'</div>';}
 function vCheck(){if(isMan(S.apt))return vMan();
  var pr=S.apt,p=passOf(pr),st=p?(p.checklist||{}):{},ph=p?(S.photos[p.id]||{}):{},closed=!!(p&&p.closed_at);
- var A0=pr.apartments,sv=isServ(A0),SV=serv(A0);var CK=chkOf(A0);var cards=CK.map(function(r,ri){var tutte=r.items.every(function(_,ii){return st[ri+'-'+ii]});return '<div class="card'+(tutte?' closed':'')+'"><h2 style="margin-bottom:6px">'+r.room+'</h2><ul class="voci">'+r.items.map(function(it){return '<li>'+it+'</li>';}).join('')+'</ul><div class="chk grp-ok"><input type="checkbox" id="g'+ri+'" data-grp="'+ri+'" '+(tutte?'checked':'')+(closed?' disabled':'')+'><label for="g'+ri+'"><b>Tutto fatto</b></label></div></div>';}).join('');
- var FX=fotoDi(pr),slots=FX.filter(function(k){return !isVid(k)}).map(function(k){var f=ph[k];return '<div class="slot '+(f?'ok':'')+(k==='Chiavi nel lucchetto'?' key':'')+'" data-slot="'+esc(k)+'">'+(f&&f._url?'<img src="'+f._url+'" alt="'+esc(k)+'">':(f?'✔<br>'+esc(k==='Chiavi nel lucchetto'?'Chiavi':k):'📷<br>'+esc(k==='Chiavi nel lucchetto'?'🔑 Chiavi':k)))+(closed?'':'<input type="file" accept="image/*" data-photo="'+esc(k)+'" aria-label="Foto '+esc(k)+'">')+'</div>';}).join('');
+ var A0=pr.apartments,sv=isServ(A0),SV=serv(A0);var CK=chkOf(A0);var cards=CK.map(function(r,ri){var tutte=r.items.every(function(_,ii){return st[ri+'-'+ii]});return '<div class="card ckc'+(tutte?' closed':'')+'" id="ck'+ri+'"><div class="ckh">'+roomIco(r.room)+'<h2>'+r.room+'</h2><span class="ckn">'+r.items.length+'</span><span class="cko">'+mIco('fatto','cki')+'</span></div><ul class="voci">'+r.items.map(function(it){return '<li>'+it+'</li>';}).join('')+'</ul><div class="chk grp-ok"><input type="checkbox" id="g'+ri+'" data-grp="'+ri+'" '+(tutte?'checked':'')+(closed?' disabled':'')+'><label for="g'+ri+'"><b>Tutto fatto</b></label></div></div>';}).join('');
+ var FX=fotoDi(pr),slots=FX.filter(function(k){return !isVid(k)}).map(function(k){var f=ph[k];return '<div class="slot '+(f?'ok':'')+(k==='Chiavi nel lucchetto'?' key':'')+'" data-slot="'+esc(k)+'">'+(f&&f._url?'<img src="'+f._url+'" alt="'+esc(k)+'">':(f?'✔<br>'+esc(k==='Chiavi nel lucchetto'?'Chiavi':k):fIco(k,'sli')+'<br>'+esc(k==='Chiavi nel lucchetto'?'Chiavi':k)))+(closed?'':'<input type="file" accept="image/*" data-photo="'+esc(k)+'" aria-label="Foto '+esc(k)+'">')+'</div>';}).join('');
  var vidCard=FX.filter(isVid).map(function(vk){return videoCard(vk,ph,closed)}).join('');
  var matCard=isMan(pr)?(function(){var ks=Object.keys(ph).filter(function(k){return /^Materiale/.test(k)}).sort(function(x,y){return Number(x.replace(/\D/g,''))-Number(y.replace(/\D/g,''))});var nx='Materiale e scontrini '+(ks.length+1);
   return '<div class="card"><h2 style="margin-bottom:6px">🧾 Materiale e scontrini <span class="note">facoltative</span></h2><div class="ph">'+ks.map(function(k){var f=ph[k];return '<div class="slot ok">'+(f&&f._url?'<img src="'+f._url+'" alt="">':'✔<br>'+esc(k.replace('Materiale e scontrini ','Foto ')))+'</div>'}).join('')+(closed?'':'<div class="slot" data-slot="'+esc(nx)+'">＋<br>Aggiungi foto<input type="file" accept="image/*" data-photo="'+esc(nx)+'" aria-label="Aggiungi foto"></div>')+'</div><p class="note" style="margin-top:8px">Foto del materiale comprato o usato e degli scontrini: servono per il conto al cliente. '+SV.fnote+'</p></div>';})():'';
  var per=sv?[]:((p&&S.per&&S.per[p.id])||[]);
  var perCard=per.length?'<div class="card" style="border:2px solid var(--nero)"><h2 style="margin-bottom:4px">🧽 Pulizia di fondo di oggi</h2><p class="note" style="margin:0 0 6px">Lavori a rotazione: in questo appartamento toccano oggi. Se una cosa non c’è in casa, premi «Non c’è».</p>'+(function(){var em=per.reduce(function(x,y){return x+(y.esito==='assente'?0:(y.minuti||0))},0);return em?'<p class="note" style="margin:0 0 6px"><b>⏱ +'+em+' min al tempo massimo</b></p>':'';})()+per.map(function(x){var es=x.esito;return '<div class="chk" style="align-items:center"><span style="flex:1">'+(es==='fatto'?'✅ ':es==='assente'?'➖ ':'')+esc(x.testo)+'</span>'+(closed?'':'<span class="row" style="gap:6px"><button class="mini '+(es==='fatto'?'selok':'')+'" data-per="'+esc(x.chiave)+'" data-es="'+(es==='fatto'?'':'fatto')+'">Fatto</button><button class="mini '+(es==='assente'?'selno':'')+'" data-per="'+esc(x.chiave)+'" data-es="'+(es==='assente'?'':'assente')+'">Non c’è</button></span>')+'</div>'}).join('')+'</div>':'';
  var fotoServ=(sv&&SV.ftit)?(function(){var F=S.aptFoto[pr.apt_id];if(F===undefined){caricaFotoApt(pr.apt_id);return '';}if(!F||!F.length)return '';return '<div class="card"><h2 style="margin-bottom:6px">'+SV.ftit+'</h2>'+F.filter(function(x){return !x.v}).map(function(x){return '<a href="'+x.url+'" target="_blank" rel="noopener"><img src="'+x.url+'" alt="" style="width:100%;border-radius:12px;display:block"></a>'}).join('')+'</div>';})():'';
- var body=vidCard+matCard+fotoServ+perCard+cards+(isMan(pr)&&!slots?'':'<div class="card"><h2 style="margin-bottom:6px">Foto obbligatorie</h2><div class="ph">'+slots+'</div><p class="note" style="margin-top:8px">'+(sv?SV.fnote:(FX.length>PHOTOS.length?'Oggi qui servono foto in più: guarda i riquadri. Senza tutte le foto il passaggio non si chiude. L’ultima è la foto delle chiavi rimesse nel lucchetto.':'Tocca un riquadro per scattare. Senza le 5 foto il passaggio non si chiude. L’ultima è la foto delle chiavi rimesse nel lucchetto, scattata prima di andare via.'))+'</p></div>');
+ var NFo=FX.filter(function(k){return !isVid(k)}).length,nFo=FX.filter(function(k){return !isVid(k)&&ph[k]}).length;
+ var body=(CK.length>1&&!sv?ckSteps(CK,st,nFo,NFo):'')+vidCard+matCard+fotoServ+perCard+cards+(isMan(pr)&&!slots?'':'<div class="card" id="fotoobb"><h2 style="margin-bottom:6px">Foto obbligatorie</h2><div class="ph">'+slots+'</div><p class="note" style="margin-top:8px">'+(sv?SV.fnote:(FX.length>PHOTOS.length?'Oggi qui servono foto in più: guarda i riquadri. Senza tutte le foto il passaggio non si chiude. L’ultima è la foto delle chiavi rimesse nel lucchetto.':'Tocca un riquadro per scattare. Senza le 5 foto il passaggio non si chiude. L’ultima è la foto delle chiavi rimesse nel lucchetto, scattata prima di andare via.'))+'</p></div>');
  return topbar(CK.length?'Check-list':'Foto','<button data-go="apt">‹ '+esc(pr.apartments.name)+'</button>')+shellOp('oggi',body,'narrow')+'<div class="bar"><div class="in"><button class="btn ghost" data-go="apt">Torna all’appartamento</button></div></div>';
 }
 function vManca(){
@@ -1675,6 +1704,7 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.ckgo){var tg=document.getElementById(d.ckgo);if(tg){if(tg.classList.contains('closed'))tg.classList.add('aperta');tg.scrollIntoView({behavior:'smooth',block:'start'});}return;}
  if(d.k){tastoPin(d.k);return;}
  if(d.logout){await sb.auth.signOut();S.user=null;S.profile=null;S.actAs=null;S.actDay=null;S.cover=null;S._covAt=0;S._su={};go('login');return;}
  if(d.avvisi){var tA=function(x){return enOn()?trS(x):x};if(!('Notification' in window)){toast('Questo browser non supporta le notifiche');return;}
@@ -1946,7 +1976,9 @@ app.addEventListener('change',async function(e){
   else{up=await sb.from('program').insert({day:day2,apt_id:aid,user_id:uid2,kind:'lavoro',ord:cnt+1,checkin:'15:00',checkout:'10:00'});}
   if(up.error)throw up.error;await loadAgenda();render();toast('Assegnato');return;}
  if(d.daychk){S.day[d.daychk]=t.checked;var r=await sb.from('day_check').upsert({user_id:S.user.id,day:todayStr(),items:S.day},{onConflict:'user_id,day'});if(r.error)throw r.error;return;}
- if(d.grp!==undefined){var pg=passOf(S.apt);if(!pg)return;pg.checklist=pg.checklist||{};var CKa=chkOf(S.apt.apartments);(d.grp==='all'?CKa.map(function(_,i){return i}):[Number(d.grp)]).forEach(function(gi){CKa[gi].items.forEach(function(_,ii){pg.checklist[gi+'-'+ii]=t.checked;});});var rg=await sb.from('passaggi').update({checklist:pg.checklist}).eq('id',pg.id);if(rg.error)throw rg.error;var cd=t.closest('.card');if(cd)cd.classList.toggle('closed',t.checked);return;}
+ if(d.grp!==undefined){var pg=passOf(S.apt);if(!pg)return;pg.checklist=pg.checklist||{};var CKa=chkOf(S.apt.apartments);(d.grp==='all'?CKa.map(function(_,i){return i}):[Number(d.grp)]).forEach(function(gi){CKa[gi].items.forEach(function(_,ii){pg.checklist[gi+'-'+ii]=t.checked;});});var rg=await sb.from('passaggi').update({checklist:pg.checklist}).eq('id',pg.id);if(rg.error)throw rg.error;var cd=t.closest('.card');if(cd)cd.classList.toggle('closed',t.checked);
+  (d.grp==='all'?CKa.map(function(_,i){return i}):[Number(d.grp)]).forEach(function(gi){var sp=document.getElementById('stp'+gi);if(sp)sp.classList.toggle('ok',t.checked)});
+  if(t.checked&&d.grp!=='all'){var nxt=null;for(var gj=Number(d.grp)+1;gj<CKa.length;gj++){var cj=document.getElementById('ck'+gj);if(cj&&!cj.classList.contains('closed')){nxt=cj;break;}}if(!nxt)nxt=document.getElementById('fotoobb');if(nxt)setTimeout(function(){nxt.scrollIntoView({behavior:'smooth',block:'start'})},250);}return;}
  if(d.chk){var p=passOf(S.apt);if(!p)return;p.checklist=p.checklist||{};p.checklist[d.chk]=t.checked;var r2=await sb.from('passaggi').update({checklist:p.checklist}).eq('id',p.id);if(r2.error)throw r2.error;return;}
  if(d.photo){var f=t.files&&t.files[0];if(!f)return;var p2=passOf(S.apt);if(!p2)return;var sl=t.closest('.slot')||t.closest('.card');sl.classList.add('busy');
   var kind2=d.photo,isV=isVid(kind2)||/^video\//.test(f.type||'');if(isV&&f.size>48*1024*1024){sl&&sl.classList.remove('busy');toast('Il video è troppo lungo: rifallo più corto (massimo un minuto)');return;}
