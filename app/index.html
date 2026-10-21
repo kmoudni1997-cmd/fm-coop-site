@@ -332,6 +332,16 @@ img.av{background:none;border-radius:0}
 
 .cov.sm{width:48px;height:48px;border-radius:10px;font-size:0}
 @media (min-width:900px){.cov.sm{width:56px;height:56px}}
+
+/* 21/10 chiusura della giornata */
+.dsis{border:2px solid #f0d9a6;background:#fffdf7}
+.dsr{border-top:1px solid var(--line);padding:10px 0}
+.dsr.on{background:#fff8e8;margin:0 -12px;padding:10px 12px}
+.dsh{display:flex;gap:10px;align-items:flex-start}
+.dsb{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.dsb .mini{display:inline-flex;align-items:center;gap:5px}
+.dsf{margin-top:10px}.dsf label{display:block;font-size:13px;font-weight:600;color:var(--mute);margin-bottom:6px}
+.dsf select,.dsf input[type=time],.dsf input[type=date]{margin-top:4px}
 </style>
 </head>
 <body>
@@ -509,6 +519,50 @@ async function loadAgenda(){
  if(!isBoss())q=q.eq('user_id',S.user.id);
  var res=await q;if(res.error)throw res.error;S.ag.rows=manWrap(res.data||[]);
 }
+// 21/10: chiusura della giornata (solo amministratori). Le regole di «fatta» sono quelle del conto: passaggio chiuso nell'app
+// oppure lavoro confermato in chat (lavori_manuali). Dal 1/10/2026 (settembre era la prova).
+var DS_DAL='2026-10-01';
+async function loadDaSistemare(){var B=S.boss;if(!isAdmin()){B.ds=null;return;}
+ var oggi=todayStr(),da=addDays(oggi,-30);if(da<DS_DAL)da=DS_DAL;
+ try{var r=await sb.rpc('da_sistemare',{p_da:da,p_a:oggi});if(r.error)throw r.error;var ids=r.data||[];if(!ids.length){B.ds={rows:[],pass:{},extra:[]};return;}
+  var R=await Promise.all([sb.from('program').select('*, apartments(id,name,code,client,max_min,size), profiles(name)').in('id',ids),
+   sb.from('passaggi').select('id,program_id,started_at,closed_at,user_id').in('program_id',ids),
+   sb.from('extra_clienti').select('day,apt_id,descrizione,importo').gte('day',da).lte('day',oggi)]);
+  var pass={};(R[1].data||[]).forEach(function(x){pass[x.program_id]=x});
+  B.ds={rows:(R[0].data||[]).sort(function(a,b){return a.day<b.day?-1:a.day>b.day?1:a.id-b.id}),pass:pass,extra:R[2].data||[]};
+ }catch(e){logErr('da-sistemare',e);B.ds=null;}}
+function hhmm(iso){return iso?hm(iso):'';}
+function dsCard(B){var D=B.ds;if(!isAdmin()||!D||!D.rows.length)return '';var oggi=todayStr();
+ var ops=(B.ops||[]).filter(function(o){return o.active&&(o.role==='op'||o.role==='boss')});
+ return '<div class="card dsis"><h2 class="ddh">'+mIco('richieste')+'Da sistemare <span class="pill warn">'+D.rows.length+'</span></h2><p class="note" style="margin:0 0 8px">Pulizie in programma che non risultano fatte: né chiuse nell’app né confermate in chat. Così conto del cliente e ore delle ragazze tornano.</p>'+
+  D.rows.map(function(pr){var a=pr.apartments||{},pa=D.pass[pr.id],sel=B.dsSel&&B.dsSel.id===pr.id?B.dsSel:null;
+   var ex=D.extra.filter(function(x){return x.day===pr.day&&x.apt_id===pr.apt_id});
+   var stato=pa?(pa.closed_at?'Chiusa':'Iniziata alle '+hhmm(pa.started_at)+', mai chiusa'):'Mai iniziata nell’app';
+   var h='<div class="dsr'+(sel?' on':'')+'"><div class="dsh">'+covThumb(pr.apt_id)+'<div style="flex:1;min-width:0"><b>'+esc(a.name||'?')+'</b><br><span class="note">'+(pr.day===oggi?'Oggi':pdate(pr.day).fmD({weekday:'short',day:'numeric',month:'short'}))+' · '+(pr.profiles?esc(pr.profiles.name):'<b style="color:var(--warn)">non assegnata</b>')+' · '+stato+'</span>'+
+    (ex.length?'<br><span class="note" style="color:var(--warn)">'+em('attenzione')+' C’è già un extra: '+ex.map(function(x){return esc(x.descrizione)+(x.importo!=null?' ('+eur(x.importo)+')':'')}).join(' · ')+'</span>':'')+'</div></div>';
+   if(!sel)h+='<div class="dsb"><button class="mini" data-dsact="'+pr.id+'" data-m="fatta">'+em('fatto')+' Fatta</button>'+(pa?'':'<button class="mini" data-dsact="'+pr.id+'" data-m="non">'+em('rifiutato')+' Non fatta</button><button class="mini" data-dsact="'+pr.id+'" data-m="sposta">'+mIco('calendario')+' Spostata</button>')+'</div>';
+   else if(sel.m==='fatta'){var ini=pa?hhmm(pa.started_at):(pr.start_time?hmt(pr.start_time):'10:00'),mx=Number(a.max_min)||90;var t0=ini.split(':'),fm=Number(t0[0])*60+Number(t0[1])+mx;var fine=pad2(Math.floor(fm/60)%24)+':'+pad2(fm%60);
+    h+='<div class="dsf">'+(pr.user_id?'':'<label>Chi l’ha fatta<select id="ds_chi"><option value="">— scegli —</option>'+ops.map(function(o){return '<option value="'+o.id+'">'+esc(o.name)+'</option>'}).join('')+'</select></label>')+
+     '<div class="row" style="gap:8px"><label style="flex:1">Inizio<input type="time" id="ds_ini" value="'+ini+'" '+(pa?'disabled':'')+'></label><label style="flex:1">Fine<input type="time" id="ds_fine" value="'+fine+'"></label></div>'+
+     '<p class="note" style="margin:4px 0 8px">Le ore contano per la paga come una pulizia dell’app (fino al tempo massimo + 15 min). Al cliente va il prezzo normale.</p>'+
+     '<div class="row" style="gap:8px"><button class="btn ghost" data-dsann="1" style="flex:1">Annulla</button><button class="btn acc" data-dssave="'+pr.id+'" style="flex:2" '+(S.busy?'disabled':'')+'>Segna come fatta</button></div></div>';}
+   else if(sel.m==='non'){h+='<div class="dsf"><label class="row" style="gap:8px;align-items:center"><input type="checkbox" id="ds_vuoto" style="width:auto"> Addebita al cliente il passaggio a vuoto (12 €)</label><p class="note" style="margin:4px 0 8px">La pulizia viene tolta dal programma. Nessuna ora alla ragazza.</p>'+
+     '<div class="row" style="gap:8px"><button class="btn ghost" data-dsann="1" style="flex:1">Annulla</button><button class="btn" data-dssave="'+pr.id+'" style="flex:2;background:var(--bad)" '+(S.busy?'disabled':'')+'>Non è stata fatta</button></div></div>';}
+   else{h+='<div class="dsf"><label>Nuovo giorno<input type="date" id="ds_day" value="'+addDays(oggi,1)+'"></label><p class="note" style="margin:4px 0 8px">Resta a '+(pr.profiles?esc(pr.profiles.name):'nessuno')+'. Se il giorno è passato e l’hanno fatta, scegli invece «Fatta».</p>'+
+     '<div class="row" style="gap:8px"><button class="btn ghost" data-dsann="1" style="flex:1">Annulla</button><button class="btn acc" data-dssave="'+pr.id+'" style="flex:2" '+(S.busy?'disabled':'')+'>Sposta</button></div></div>';}
+   return h+'</div>';}).join('')+'</div>';}
+async function dsSalva(id){var B=S.boss,pr=B.ds.rows.filter(function(x){return x.id===id})[0];if(!pr)return;var pa=B.ds.pass[id],m=B.dsSel.m,a=pr.apartments||{},chi=(S.profile&&S.profile.name)||'un amministratore';
+ if(m==='fatta'){var uid=pr.user_id;if(!uid){var sc=document.getElementById('ds_chi');uid=sc&&sc.value;if(!uid){toast('Scegli chi l’ha fatta');return false;}var u1=await sb.from('program').update({user_id:uid}).eq('id',id);if(u1.error)throw u1.error;}
+  var fine=document.getElementById('ds_fine').value,ini=pa?null:document.getElementById('ds_ini').value;if(!fine||(!pa&&!ini)){toast('Metti gli orari');return false;}
+  var fIso=new Date(pr.day+'T'+fine+':00').toISOString();
+  if(pa){if(new Date(fIso)<=new Date(pa.started_at)){toast('La fine è prima dell’inizio');return false;}var u2=await sb.from('passaggi').update({closed_at:fIso,a_posteriori:true,note:'Chiusa da '+chi+' nella chiusura della giornata'}).eq('id',pa.id);if(u2.error)throw u2.error;}
+  else{var iIso=new Date(pr.day+'T'+ini+':00').toISOString();if(new Date(fIso)<=new Date(iIso)){toast('La fine è prima dell’inizio');return false;}
+   var ins=await sb.from('passaggi').insert({program_id:id,apt_id:pr.apt_id,user_id:uid,day:pr.day,started_at:iIso,closed_at:fIso,a_posteriori:true,note:'Segnata come fatta da '+chi+' nella chiusura della giornata (senza foto)'});if(ins.error)throw ins.error;}
+  toast('Segnata come fatta');}
+ else if(m==='non'){var vu=document.getElementById('ds_vuoto');if(vu&&vu.checked){var ex=await sb.from('extra_clienti').insert({day:pr.day,client:a.client||'Senza cliente',apt_id:pr.apt_id,descrizione:'Passaggio a vuoto (appartamento non da fare)',importo:12,fonte:'chiusura giornata · '+((S.profile&&S.profile.username)||'')});if(ex.error)throw ex.error;}
+  var de=await sb.from('program').delete().eq('id',id);if(de.error)throw de.error;toast(vu&&vu.checked?'Tolta dal programma, 12 € di passaggio a vuoto':'Tolta dal programma');}
+ else{var nd=document.getElementById('ds_day').value;if(!nd){toast('Scegli il giorno');return false;}var up=await sb.from('program').update({day:nd}).eq('id',id);if(up.error)throw up.error;toast('Spostata al '+pdate(nd).fmD({day:'numeric',month:'long'}));}
+ return true;}
 async function loadBoss(){caricaCopertine().then(function(c){if(c)render()});
  var d=S.boss.date,adm=isAdmin(),nulla=Promise.resolve({data:null});
  // 21/10: tutte insieme (prima 12 una dopo l'altra)
@@ -528,6 +582,7 @@ async function loadBoss(){caricaCopertine().then(function(c){if(c)render()});
  S.boss.rich=R[4].error?[]:(R[4].data||[]);S.boss.recl=R[5].error?[]:(R[5].data||[]);S.boss.apts=R[6].data||[];S.boss.ops=R[7].data||[];
  if(adm){S.boss.costi={};(R[8].data||[]).forEach(function(c){S.boss.costi[c.apt_id]=c});S.boss.par=R[9].data||[];}
  S.boss.segnChiuse=R[10].error?[]:(R[10].data||[]);
+ if(adm)await loadDaSistemare();
  var ids=S.boss.program.filter(function(x){return x.apt_id}).map(function(x){return x.id});
  var ps=ids.length?await sb.from('passaggi').select('*').in('program_id',ids):{data:[]};S.boss.passaggi=ps.data||[];
  for(var bi=0;bi<S.boss.passaggi.length;bi++){var bp=S.boss.passaggi[bi];if(bp.closed_at||bp.fermato_at||!bp.started_at)continue;var bpr=S.boss.program.filter(function(x){return x.id===bp.program_id})[0];if(bpr&&Date.now()>=scadenza(bpr,bp)){var rb=await sb.from('passaggi').update({fermato_at:new Date(scadenza(bpr,bp)).toISOString(),over_by_min:MARGINE_STOP}).eq('id',bp.id).is('fermato_at',null).select().maybeSingle();if(rb.data)S.boss.passaggi[bi]=rb.data;}}
@@ -1455,7 +1510,7 @@ function vBoss(){
   return topbar(title,null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?ico('bell'):ico('belloff'))+'</button><button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button><button data-logout="1">Esci</button>')+shellBoss('oggi',body);}}
  if(tab==='oggi'){title='Oggi';
   var offs=B.program.filter(function(pr){return pr.kind!=='lavoro'});
-  body='<div class="row" style="justify-content:space-between"><h1>'+(B.date===todayStr()?'Oggi, '+dlong(B.date):dlong(B.date))+'</h1><span class="row" style="gap:6px"><button class="mini on" data-xopen="1">＋ Lavoro extra</button><input type="date" id="bdate" value="'+B.date+'" style="width:auto;padding:8px 10px;font-size:14px"></span></div>'+(B.xform?formExtra(B):'')+''+riepGiorno(B.date,work.length,closed,work.filter(function(pr){var t=stOf(pr);return t==='doing'||t==='over'}).length,(B.segn||[]).filter(function(s){return s.created_at&&dstr(new Date(s.created_at))===B.date}).length)+'<div class="stat"><div><b>'+closed+'/'+work.length+'</b><span>passaggi chiusi</span></div><div><b style="'+(over?'color:var(--bad)':'')+'">'+over+'</b><span>oltre il tempo</span></div><div><b>'+Object.keys(spesa).length+'</b><span>prodotti da comprare</span></div><div><b>'+B.segn.length+'</b><span>segnalazioni aperte</span></div>'+(isAdmin()?(function(){var tot=0,nc=0;work.forEach(function(pr){var k=costoPass(pr,byProg[pr.id]);if(k&&k.chiuso){tot+=k.costo;nc++;}});return '<div><b>'+eur(tot)+'</b><span>costo personale ('+nc+' chiusi) · solo admin</span></div>';})():'')+'</div>'+
+  body='<div class="row" style="justify-content:space-between"><h1>'+(B.date===todayStr()?'Oggi, '+dlong(B.date):dlong(B.date))+'</h1><span class="row" style="gap:6px"><button class="mini on" data-xopen="1">＋ Lavoro extra</button><input type="date" id="bdate" value="'+B.date+'" style="width:auto;padding:8px 10px;font-size:14px"></span></div>'+(B.xform?formExtra(B):'')+dsCard(B)+riepGiorno(B.date,work.length,closed,work.filter(function(pr){var t=stOf(pr);return t==='doing'||t==='over'}).length,(B.segn||[]).filter(function(s){return s.created_at&&dstr(new Date(s.created_at))===B.date}).length)+'<div class="stat"><div><b>'+closed+'/'+work.length+'</b><span>passaggi chiusi</span></div><div><b style="'+(over?'color:var(--bad)':'')+'">'+over+'</b><span>oltre il tempo</span></div><div><b>'+Object.keys(spesa).length+'</b><span>prodotti da comprare</span></div><div><b>'+B.segn.length+'</b><span>segnalazioni aperte</span></div>'+(isAdmin()?(function(){var tot=0,nc=0;work.forEach(function(pr){var k=costoPass(pr,byProg[pr.id]);if(k&&k.chiuso){tot+=k.costo;nc++;}});return '<div><b>'+eur(tot)+'</b><span>costo personale ('+nc+' chiusi) · solo admin</span></div>';})():'')+'</div>'+
   bannerServ(work,stOf,B)+(offs.length?'<div class="row" style="flex-wrap:wrap;gap:6px">'+offs.map(function(pr){return '<span class="pill '+(pr.kind==='riposo'?'blue':'viola')+'">'+esc(pr.profiles?pr.profiles.name:'')+': '+KINDS[pr.kind]+'</span>'}).join('')+'</div>':'')+
   manOggi(manL,byProg,B)+(B.rich&&B.rich.length?'<button class="card" data-rtab="1" style="display:block;width:100%;text-align:left;border:2px solid var(--warn);cursor:pointer"><b>📝 '+(B.rich.length===1?'1 richiesta di un cliente':B.rich.length+' richieste dei clienti')+' da guardare</b><br><span class="note">Tocca per aprirle (Segnalazioni).</span></button>':'')+(function(){if(!work.length)return '<div class="card list">';var g={},ord=[];work.forEach(function(pr){var k=pr.profiles?pr.profiles.name:'Non assegnato';if(!g[k]){g[k]=[];ord.push(k);}g[k].push(pr);});ord.sort(function(a,b){return a==='Non assegnato'?1:b==='Non assegnato'?-1:a.localeCompare(b)});var rowFn=function(pr){var st=stOf(pr),p=byProg[pr.id];return '<button class="it apt" data-viewpass="'+pr.id+'" style="width:100%;text-align:left"><span class="row"><span class="dot '+st+'"></span>'+covThumb(pr.apt_id)+'<span><b>'+esc(pr.apartments.name)+'</b><br><span style="color:var(--mute);font-size:13px">'+(pr.start_time?'ore '+hmt(pr.start_time)+' · ':'')+(isServ(pr.apartments)?esc(pr.note||''):'check-in '+hmt(pr.checkin||'15:00'))+'</span></span></span><span style="text-align:right"><span class="pill '+(st==='done'?'ok':st==='over'?'bad':st==='doing'?'warn':'grey')+'">'+(st==='done'?'chiuso '+hm(p.closed_at)+' · '+fmt(durMin(p)):st==='over'?'⏰ oltre di '+fmt(elapsedMin(p)-maxOf(pr,p)):st==='doing'?'in corso da '+hm(p.started_at):'da fare')+'</span>'+(p?'<br><span class="note">'+(Object.keys(p.checklist||{}).filter(function(k){return p.checklist[k]}).length)+'/'+chkOf(pr.apartments).reduce(function(a,r){return a+r.items.length},0)+' voci · tocca per aprire'+(lontano(p.start_dist_m,p.start_acc)||lontano(p.end_dist_m,p.end_acc)?' · <b style="color:var(--bad)">📍 lontano</b>':'')+(p.bianch_lasciati!=null?' · 🧺 '+p.bianch_lasciati:'')+'</span>':'')+'</span></button>';};return ord.map(function(k){var L=g[k].sort(function(a,b){return (a.ord||0)-(b.ord||0)});var ch=L.filter(function(pr){return stOf(pr)==='done'}).length;var min=L.reduce(function(x,pr){return x+((pr.apartments&&pr.apartments.max_min)||90)},0);return '<div class="card list"><div class="row" style="justify-content:space-between;padding:2px 0 6px"><h2 style="margin:0">'+esc(k)+'</h2><span class="row" style="gap:8px"><span class="note">'+ch+'/'+L.length+' chiusi · '+fmt(min)+' previsti</span>'+(isBoss()&&L[0].user_id&&L.length>1?'<button class="mini" data-giro="'+L[0].user_id+'" title="Ordine con meno km">🧭 Giro</button>':'')+(isBoss()&&L[0].user_id?'<button class="mini" data-actas="'+L[0].user_id+'" title="Apri, compila e chiudi al posto suo">Fai tu</button>':'')+'</span></div>'+(B.giro&&L[0].user_id&&B.giro.uid===L[0].user_id?giroCard(B.giro):'')+L.map(rowFn).join('')+'</div>'}).join('')+'<div class="card list" style="display:none">';})()+(work.length?'':'<p class="note">Nessun appartamento in programma per questa data. Usa l’Agenda per assegnare.</p>')+'</div>';}
  if(tab==='spesa'){title='Spesa';var ks=Object.keys(spesa);body='<h1>Lista della spesa</h1>'+(ks.length?'<div class="card list">'+ks.map(function(k){return '<div class="it"><span><b>'+esc(k)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(spesa[k].join(', '))+'</span></span><span class="pill warn">×'+spesa[k].length+'</span></div>';}).join('')+'</div>':'<div class="card">Nessun prodotto segnato per '+dlong(B.date)+'.</div>');}
@@ -1677,6 +1732,9 @@ app.addEventListener('click',async function(e){
  if(d.pkdel){var ie2=document.getElementById('pkimp');if(ie2)S._pkimp=ie2.value;S._pkfile=null;render();return;}
  if(d.per!==undefined&&d.per){var pp2=passOf(S.apt);if(!pp2)return;var rr=await sb.rpc('segna_periodico',{p_passaggio:pp2.id,p_chiave:d.per,p_esito:d.es||null});if(rr.error)throw rr.error;await loadPeriodici(pp2.id,S.per);render();if(d.es==='assente')toast('Segnato: non c’è in questo appartamento');return;}
  if(d.servdone){var prv=S.boss.program.filter(function(x){return String(x.id)===d.servdone})[0];if(!prv)return;S.busy=true;render();var adesso=new Date().toISOString();var rs=await sb.from('passaggi').insert({program_id:prv.id,apt_id:prv.apt_id,user_id:prv.user_id||S.user.id,day:prv.day,started_at:adesso,closed_at:adesso,note:'Segnato come fatto da '+((S.profile&&S.profile.name)||'un responsabile')+(prv.user_id&&prv.user_id!==S.user.id?' (le ore vanno messe a mano)':'')});S.busy=false;if(rs.error)throw rs.error;await loadBoss();render();toast('Segnato come fatto');return;}
+ if(d.dsact){S.boss.dsSel={id:Number(d.dsact),m:d.m};render();return;}
+ if(d.dsann){S.boss.dsSel=null;render();return;}
+ if(d.dssave){if(S.busy)return;S.busy=true;render();try{var okd=await dsSalva(Number(d.dssave));if(okd!==false){S.boss.dsSel=null;await loadDaSistemare();}}finally{S.busy=false;}render();return;}
  if(d.bclose){var bp=S.boss.passaggi.filter(function(x){return String(x.id)===d.bclose})[0];if(!bp||bp.closed_at)return;var bpr=S.boss.program.filter(function(x){return x.id===bp.program_id})[0];
   if(!confirm('Chiudere il passaggio di '+(bpr&&bpr.apartments?bpr.apartments.name:'')+' con le foto che ci sono?'))return;
   S.busy=true;render();var bover=bp.fermato_at?MARGINE_STOP:Math.max(0,Math.round(elapsedMin(bp)-maxOf(bpr,bp)));
