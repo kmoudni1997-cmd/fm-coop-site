@@ -1029,7 +1029,7 @@ function giorniPaghe(D,uid,haCar,oreApp){var days={};function g(d){return days[d
   else if(!usaMan){ore=oreVere(G.pas,senzaTetto(uid,d));aperti=G.pas.filter(function(q){return !q.closed_at}).length;}
   else{var o=items.filter(function(i){return i.ore!=null});if(o.length)ore=o.reduce(function(t,i){return t+Number(i.ore)},0);}
   var park=(D.spese||[]).filter(function(x){return x.user_id===uid&&x.day===d}).reduce(function(t,x){return t+Number(x.importo)},0);
-  var tfx=tappaFissa(uid,d),kg=haCar?kmGiro(tfx&&items.length?items.concat([tfx]):items,d>=GIRO_OTT_DAL):null,km=(kg&&typeof kg==='object')?kg.km:kg,via=(kg&&typeof kg==='object')?kg.min:(kg===0?0:null);
+  var tfx=tappaFissa(uid,d),kg=haCar?(tfx&&items.length?kmGiro(items.concat([tfx]),false):kmGiro(items,d>=GIRO_OTT_DAL)):null, /* con la tappa fissa: appartamenti nell ordine fatto, poi Corridoni (ci butta la spazzatura), poi deposito */km=(kg&&typeof kg==='object')?kg.km:kg,via=(kg&&typeof kg==='object')?kg.min:(kg===0?0:null);
   if(dopo&&G.man.length)ore=(ore||0)+G.man.reduce(function(t,m){return t+Number(m.ore||0)},0);
    var fx=orarioFisso(uid);if(fx&&d>=PAGHE_ORE_DAL)ore=fuoriOrario(G.pas,fx); // orario fisso: solo le ore fuori orario
   // fino al 10/10: le ore valgono la paga oraria netta (gli euro li vede solo l'amministratore)
