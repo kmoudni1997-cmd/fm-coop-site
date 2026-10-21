@@ -245,6 +245,8 @@ h2 .pill{vertical-align:middle}
 
 .emo{width:1.3em;height:1.3em;vertical-align:-0.3em;display:inline-block;margin-right:.1em}
 h2 .emo{width:1.25em;height:1.25em}
+button .emo{vertical-align:-0.28em}
+.ic .emo{width:24px;height:24px;margin:0 auto;display:block}
 </style>
 </head>
 <body>
@@ -584,6 +586,20 @@ function trS(s){var k=s.trim();if(!k)return s;var r=trK(k);
  if(r===null){var m=k.match(/^([^A-Za-zÀ-ÿ0-9(«]+\s)(.+)$/);if(m){var r2=trK(m[2]);if(r2!==null)r=m[1]+r2;}}
  if(r===null){var o=k;PK().PARZ.forEach(function(x){o=o.split(x[0]).join(x[1])});if(o!==k)r=o;}
  return r===null?s:s.replace(k,r);}
+// 21/10: emoji -> icone illustrate (app/icone/*.png), sui testi già disegnati e tradotti
+var EMO_ICO={'✅':'fatto','❌':'rifiutato','⚠':'attenzione','🔔':'notifiche','🔴':'urgente','⏳':'incorso','➕':'aggiungi','✏':'modifica','🗑':'elimina',
+ '🧹':'pulizia','🧽':'fondo','🧴':'prodotti','🧺':'biancheria','🛏':'biancheria','🔑':'chiavi','🚪':'porta',
+ '📷':'foto','📸':'foto','🎥':'video','🔧':'manutenzione','🛠':'manutenzione','💡':'luce','✂':'parte','🔍':'controllo','📣':'messaggio','💬':'segnalazione',
+ '💶':'prezzo','🧾':'scontrino','💳':'carta','👛':'portafoglio','📊':'conto','📁':'archivio','📄':'pdf','📅':'calendario','📆':'calendario','📋':'richieste',
+ '🚗':'auto','⛽':'carburante','📍':'indirizzo','🧭':'giro','📦':'consegna','🏢':'palazzo','🏠':'casa','👤':'operatrice','👥':'squadra'};
+var EMO_RX=new RegExp('('+Object.keys(EMO_ICO).join('|')+')\uFE0F?','g');
+function emoIcone(root){if(!root)return;var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nd,L=[];
+ while(nd=w.nextNode()){EMO_RX.lastIndex=0;if(EMO_RX.test(nd.nodeValue))L.push(nd);}
+ L.forEach(function(x){var p=x.parentElement;if(!p||p.closest('option,textarea,script,style,title,[data-noemo]'))return;
+  var t=x.nodeValue,f=document.createDocumentFragment(),i=0,m;EMO_RX.lastIndex=0;
+  while(m=EMO_RX.exec(t)){if(m.index>i)f.appendChild(document.createTextNode(t.slice(i,m.index)));
+   var im=document.createElement('img');im.className='emo';im.src='icone/'+EMO_ICO[m[1]]+'.png';im.alt='';f.appendChild(im);i=m.index+m[0].length;}
+  if(i<t.length)f.appendChild(document.createTextNode(t.slice(i)));x.replaceWith(f);});}
 function traduci(root){document.documentElement.dir=lg()==='ar'?'rtl':'ltr';if(!enOn()||!root)return;
  root.querySelectorAll('option').forEach(function(o){if(!o.hasAttribute('value'))o.setAttribute('value',o.textContent);});
  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nd,L=[];while(nd=w.nextNode())L.push(nd);
@@ -913,7 +929,7 @@ function bSegnForm(B){var ap=(B.apts||[]).filter(function(a){return a.active&&!i
  return '<div class="card" style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px"><h2 style="margin:0">Nuova segnalazione</h2><label class="f">Appartamento<select id="sapt"><option value="">— scegli —</option>'+ap.map(function(a){return '<option value="'+a.id+'"'+(String(S._sapt||'')===String(a.id)?' selected':'')+'>'+esc(a.name)+(a.client&&!isClient()?' · '+esc(a.client):'')+'</option>'}).join('')+'</select></label>'+
  '<select id="stype">'+SEGN_TYPES.map(function(t){return '<option'+(S._stype===t?' selected':'')+'>'+t+'</option>'}).join('')+'</select><textarea id="stext" rows="3" placeholder="Una riga: cosa e dove. Es. «perdita d’acqua dal WC»">'+esc(S._stext||'')+'</textarea><div class="ph" id="sprev">'+sPrev()+'</div><p class="note" style="margin:0">'+(isClient()?'Potete mettere più foto: scattatele una alla volta oppure sceglietene tante insieme dalla galleria.':'Puoi mettere più foto: scattane una alla volta oppure scegline tante insieme dalla galleria.')+'</p>'+
  '<div class="row" style="gap:8px"><button class="btn ghost" data-nseg="0" style="flex:1">Annulla</button><button class="btn acc" id="ssend" style="flex:2" '+(S.busy?'disabled':'')+'>'+(S.busy?'Invio…':'Salva la segnalazione')+'</button></div></div>';}
-function sRedraw(){var el=document.getElementById('sprev');if(!el)return;el.innerHTML=sPrev();traduci(el);}
+function sRedraw(){var el=document.getElementById('sprev');if(!el)return;el.innerHTML=sPrev();traduci(el);emoIcone(el);}
 function vAptsOp(){var L=S.storico||[],visti={},el=[];L.forEach(function(x){if(visti[x.apt_id])return;visti[x.apt_id]=1;el.push(x);});
  var body='<h1>Appartamenti</h1><p class="note" style="margin:0 0 8px">Gli appartamenti che hai fatto negli ultimi 7 giorni. Tocca l’appartamento per vedere come arrivare, i codici e le foto, e per mandare una segnalazione.</p>'+
   (el.length?'<div class="card list">'+el.map(function(x){var a=x.apartments||{};return '<button class="apt" data-hinfo="'+x.id+'" style="border:0;border-radius:0;padding:12px 4px"><span><span class="n">'+esc(a.name||'')+'</span><br><span class="s">'+esc(a.address||'')+'</span><br><span class="s">Fatto '+pdate(x.day).fmD({weekday:'long',day:'numeric',month:'long'})+'</span></span><span class="t">Scheda ›</span></button>'}).join('')+'</div>':'<div class="card">Nessun appartamento negli ultimi 7 giorni.</div>');
@@ -1267,7 +1283,7 @@ function vPaghe(B){var P=B.paghe=B.paghe||{};var mese=P.m||meseDi(todayStr());
   pers.map(function(o){var T=P.calc[o.id].T;return '<tr style="'+(P.u===o.id?'background:var(--tap)':'')+'"><td><button class="mini" data-pu="'+o.id+'">'+esc(o.name)+(o.has_car?' 🚗':'')+'</button></td><td>'+T.giorni+'</td><td>'+T.app+'</td><td>'+(T.aOre?fmt(Math.round(T.aOre*60)):'—')+'</td><td><b>'+eur(T.comp)+'</b></td><td>'+fmt(Math.round(T.ore*60))+'</td><td>'+(o.has_car?(T.kmOk?fmt(T.viaggio):'<span class="spin"></span>'):'—')+'</td><td><b>'+fmt(Math.round(T.oreTot*60))+'</b></td><td>'+(o.has_car?(T.kmOk?kmTxt(Math.round(T.km*10)/10):'<span class="spin"></span>'):'—')+'</td><td>'+(o.has_car&&T.kmOk?eur(T.km*rate(o)):'—')+'</td><td>'+(T.park?eur(T.park):'—')+'</td></tr>'}).join('')+'</table></div><p class="note" style="margin:6px 0 0">Tocca un nome per il dettaglio giorno per giorno.</p></div>';
  var C=P.u&&P.calc[P.u];
  if(C){var o=C.o;h+='<div class="card"><h2>'+esc(o.name)+(o.has_car?' <span class="note">'+esc(o.auto||'auto propria')+' · '+String(rate(o)).replace('.',',')+' €/km</span>':'')+'</h2><div class="gt"><table><tr><th>Giorno</th><th>Lavori</th><th>Compenso</th><th>Ore lavoro</th>'+(o.has_car?'<th>Tragitto</th><th>Ore totali</th><th>Km</th><th>Rimborso</th>':'')+'<th>Parcheggi</th></tr>'+
-  C.R.map(function(g){return '<tr><td>'+giornoTxt(g.day)+(g.man?'<br><span class="note">'+esc(g.fonte)+'</span>':'')+'</td><td>'+g.items.map(function(i){return esc(i.n)}).join(', ')+(TAPPA_FISSA[o.username]&&g.items.length&&isAdmin()?(function(){var sal=tappaSaltata(o.id,o.username,g.day,P.data);return '<br><button class="mini'+(sal?' on':'')+'" data-tsalta="'+o.id+'|'+g.day+'" style="margin-top:4px">'+(sal?'Corridoni: non c’era · tocca se c’era':em('elimina')+' Corridoni ✓ · tocca se non c’era')+'</button>';})():'')+'</td><td>'+(g.comp!=null?'<b>'+eur(g.comp)+'</b>':'—')+'</td><td>'+oreTxt(g)+'</td>'+(o.has_car?'<td>'+(g.viaggio==null?'<span class="spin"></span>':fmt(g.viaggio))+'</td><td><b>'+fmt(Math.round(g.oreTot*60))+'</b></td><td>'+kmTxt(g.km)+'</td><td>'+(g.km>0?eur(g.km*rate(o)):'—')+'</td>':'')+'<td>'+(g.park?eur(g.park):'—')+'</td></tr>'}).join('')+'</table></div></div>';}
+  C.R.map(function(g){return '<tr><td>'+giornoTxt(g.day)+(g.man?'<br><span class="note">'+esc(g.fonte)+'</span>':'')+'</td><td>'+g.items.map(function(i){return esc(i.n)}).join(', ')+(TAPPA_FISSA[o.username]&&g.items.length&&isAdmin()?(function(){var sal=tappaSaltata(o.id,o.username,g.day,P.data);return '<br><button class="mini'+(sal?' on':'')+'" data-tsalta="'+o.id+'|'+g.day+'" style="margin-top:4px">'+(sal?'Corridoni: non c’era · tocca se c’era':em('rifiuti')+' Corridoni ✓ · tocca se non c’era')+'</button>';})():'')+'</td><td>'+(g.comp!=null?'<b>'+eur(g.comp)+'</b>':'—')+'</td><td>'+oreTxt(g)+'</td>'+(o.has_car?'<td>'+(g.viaggio==null?'<span class="spin"></span>':fmt(g.viaggio))+'</td><td><b>'+fmt(Math.round(g.oreTot*60))+'</b></td><td>'+kmTxt(g.km)+'</td><td>'+(g.km>0?eur(g.km*rate(o)):'—')+'</td>':'')+'<td>'+(g.park?eur(g.park):'—')+'</td></tr>'}).join('')+'</table></div></div>';}
  return h;}
 function kmRate(u){return Number((u&&u.km_rate)||0.30);}
 function vOre(){var P=S.mieOre=S.mieOre||{};var mese=P.m||meseDi(todayStr());var u=S.actAs||S.profile;var car=!!(u&&u.has_car);
@@ -1368,7 +1384,7 @@ function render(){
  var v=S.view,h;
  if(!S.user||v==='login')h=vLogin();else if(v==='newpin')h=vNewPin();else if(isClient())h=vClient();else if(isBoss()&&!S.actAs)h=(S.boss.tab==='agenda')?vAgenda():vBoss();else if(v==='agenda')h=vAgenda();else if(v==='apts')h=vAptsOp();else if(v==='ore')h=vOre();else if(v==='aptinfo')h=vAptInfo();else if(v==='apt')h=vApt();else if(v==='check')h=vCheck();else if(v==='manca')h=vManca();else if(v==='segnala')h=vSegnala();else if(v==='parcheggio')h=vParcheggio();else if(v==='scheda')h=vScheda();else if(v==='schedaag')h=vSchedaAg();else h=vOggi();
  app.replaceChildren(frag(h));
- traduci(app);
+ traduci(app);emoIcone(app);
  if(v==='check')loadPhotoThumbs();
  if(isBoss()&&!S.actAs&&S.boss.tab==='segn')loadSegnThumbs();
  if(isClient())loadSegnThumbs();
