@@ -912,7 +912,7 @@ function traduci(root){document.documentElement.dir=lg()==='ar'?'rtl':'ltr';if(!
 async function loadClient(){var C=S.cl;
  // 21/10: le richieste indipendenti partono tutte insieme (prima erano 16 una dopo l'altra)
  var R=await Promise.all([
-  sb.from('program').select('*, apartments(id,name,address,client,zone,size)').eq('day',C.date).eq('kind','lavoro').order('ord'),
+  sb.from('program').select('*, apartments(id,name,address,client,zone,size)').or('day.eq.'+C.date+',giorno_cliente.eq.'+C.date).eq('kind','lavoro').order('ord'),
   sb.rpc('periodici_cliente',{p_day:C.date}),
   sb.from('segnalazioni').select('id,apt_id,type,text,status,photo_path,created_at,prev_importo,prev_testo,prev_stato,prev_pdf,prev_at,prev_risposta_at,prev_nota,chiusa_da_cliente,chiusa_at,chiusa_nota,fm_chiesto_at,fm_nota,fm_parziale, apartments(name)').order('created_at',{ascending:false}).limit(150),
   sb.from('richieste').select('*, apartments(name)').order('created_at',{ascending:false}).limit(60),
@@ -920,7 +920,7 @@ async function loadClient(){var C=S.cl;
   sb.from('conti_clienti').select('id,mese,stato,totale,dettaglio,note,scadenza,aggiornato').order('mese',{ascending:false}),
   clEcon()?sb.rpc('conto_in_corso'):Promise.resolve({data:null}),
   caricaCopertine()]);
- var pr=R[0];if(pr.error)throw pr.error;var rowsAll=manWrap(pr.data||[]);C.manDay=rowsAll.filter(isMan);C.rows=rowsAll.filter(function(x){return x.apt_id&&!isServ(x.apartments)});
+ var pr=R[0];if(pr.error)throw pr.error;var rowsAll=manWrap((pr.data||[]).filter(function(x){return x.giorno_cliente?x.giorno_cliente===C.date:(x.day===C.date&&!x.nascosto_cliente)}));C.manDay=rowsAll.filter(isMan);C.rows=rowsAll.filter(function(x){return x.apt_id&&!isServ(x.apartments)});
  C.fondo={};if(!R[1].error)(R[1].data||[]).forEach(function(x){(C.fondo[x.passaggio_id]=C.fondo[x.passaggio_id]||[]).push(x.testo)});
  C.segn=R[2].data||[];
  C.cover=covers();C.rich=R[3].error?[]:(R[3].data||[]);C.acq=R[4].error?[]:(R[4].data||[]);C.bia=R[5].error?[]:(R[5].data||[]);
@@ -933,6 +933,8 @@ async function loadClient(){var C=S.cl;
   sidM.length?sb.from('program').select('id,day,note,segnalazione_id').in('segnalazione_id',sidM):nulla,
   rpid.length?sb.from('passaggi').select('program_id,closed_at').in('program_id',rpid):nulla]);
  if(R2[0].error)throw R2[0].error;C.pass={};(R2[0].data||[]).forEach(function(q){C.pass[q.program_id]=q});
+ // lavoro dichiarato in un altro giorno: il cliente lo vede solo quando è chiuso
+ C.rows=C.rows.filter(function(x){return !x.giorno_cliente||(C.pass[x.id]&&C.pass[x.id].closed_at)});
  C.richPass={};(R2[2].data||[]).forEach(function(q){C.richPass[q.program_id]=q});
  // manutenzioni: per ogni segnalazione messa nel programma, il passaggio e i video prima/dopo (conferma al cliente)
  C.manLav={};var progM=R2[1].data||[];
@@ -1078,7 +1080,7 @@ function soloCorredo(s){return isCorredo(s)&&!MANUT_RX.test(s.text||'');}
 function clSegnLista(key,tit,ic,sub,L,vuoto,cls){var C=S.cl,op=!!(C.sgOpen&&C.sgOpen[key]);
  return '<div class="sgcol'+(op?' op':'')+'"><button class="sghead '+(cls||'')+'" data-csgo="'+key+'">'+mIco(ic,'sghi')+'<span class="sght"><b>'+tit+'</b><small>'+sub+'</small></span><span class="sgn">'+L.length+'</span><span class="sgar">'+(op?'▴':'▾')+'</span></button>'+
   (op?(L.length?L.map(function(s){return clCardSegn(s,true)}).join(''):'<div class="card"><p class="note" style="margin:0">'+vuoto+'</p></div>'):'')+'</div>';}
-function quasiFinito(p2){try{var pr=S.apt;if(!pr||!p2||p2.closed_at||p2._qf||!pr.apartments||isServ(pr.apartments))return;var have=S.photos[p2.id]||{};
+function quasiFinito(p2){try{var pr=S.apt;if(!pr||!p2||p2.closed_at||p2._qf||!pr.apartments||isServ(pr.apartments)||pr.nascosto_cliente)return;var have=S.photos[p2.id]||{};
  var manca=fotoDi(pr,p2).filter(function(k){return !have[k]});if(manca.length===1&&manca[0]==='Chiavi nel lucchetto'){p2._qf=true;sb.rpc('avvisa_quasi_finito',{p_passaggio:p2.id}).then(function(r){if(r.error)logErr('quasi-finito',r.error);});}}catch(e){}}
 function clCardSegn(s,conApp){return '<div class="card"><div class="row"><span class="pill '+(s.status==='chiusa'?'ok':s.status==='presa'?'warn':'bad')+'">'+esc(s.type)+'</span><span style="margin-left:auto;color:var(--mute);font-size:13px">'+new Date(s.created_at).fmD()+' '+hm(s.created_at)+'</span></div>'+(conApp&&s.apartments?'<p style="margin:8px 0 0"><b>'+esc(s.apartments.name)+'</b></p>':'')+'<p style="margin:6px 0 0">'+esc(s.text||'(solo foto)')+'</p><p class="note" style="margin:4px 0 0">'+(s.status==='chiusa'?(s.chiusa_da_cliente?'<b style="color:var(--ok)">'+em('fatto')+' Fatto da '+esc(clSigla())+'</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():''):'<b style="color:var(--ok)">'+em('fatto')+' Fatto da FM Coop</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():'')):s.status==='presa'?'Presa in carico da FM':'Aperta')+'</p>'+(s.chiusa_da_cliente&&s.chiusa_nota?'<p class="note" style="margin:2px 0 0">Nota: '+esc(s.chiusa_nota)+'</p>':'')+(s.status!=='chiusa'?'<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="mini" data-csist="'+s.id+'">'+em('fatto')+' Fatto da '+esc(clSigla())+'</button>'+(s.fm_chiesto_at?'':'<button class="mini" data-cfm="'+s.id+'">🔧 Fate voi FM</button>')+'</div>':'')+clFotoSeg(s)+fmInfo(s,true)+pvBox(s,true)+lavFatto(s)+'</div>';}
 var CL_NAV=[['oggi','🏠','Appartamenti'],['rich','📝','Richieste'],['segn','📸','Segnalazioni'],['acq','🧾','Acquisti'],['bia','🛏','Biancheria'],['codici','🏠','Schede'],['conto','💶','Conto']];
@@ -1322,7 +1324,8 @@ function meseDi(d){return d.slice(0,7);}
 function meseRange(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));var a=new Date(y,mm-1,1),b=new Date(y,mm,0);return [dstr(a),dstr(b)];}
 function meseNome(m){var y=Number(m.slice(0,4)),mm=Number(m.slice(5,7));return new Date(y,mm-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'});}
 async function loadConti(){var B=S.boss;B.cm=B.cm||meseDi(todayStr());var r=meseRange(B.cm);B.contiLoading=true;
- var ps=await sb.from('passaggi').select('id,day,started_at,closed_at,fermato_at,apt_id,program_id,bianch_lasciati,bianch_ritirati,program(guests,segnalazione_id,prezzo),apartments(name,client,zone,guests,size,code)').gte('day',r[0]).lte('day',r[1]).not('closed_at','is',null).order('day');if(ps.error)throw ps.error;
+ var ps=await sb.from('passaggi').select('id,day,started_at,closed_at,fermato_at,apt_id,program_id,bianch_lasciati,bianch_ritirati,program(guests,segnalazione_id,prezzo,giorno_cliente),apartments(name,client,zone,guests,size,code)').gte('day',addDays(r[0],-7)).lte('day',addDays(r[1],7)).not('closed_at','is',null).order('day');
+ (ps.data||[]).forEach(function(x){if(x.program&&x.program.giorno_cliente)x.day=x.program.giorno_cliente;});ps.data=(ps.data||[]).filter(function(x){return x.day>=r[0]&&x.day<=r[1]});if(ps.error)throw ps.error;
  var pr=await sb.from('program').select('id,day,apt_id,guests,prezzo,apartments(name,client,zone,size)').gte('day',r[0]).lte('day',r[1]).eq('kind','lavoro').is('segnalazione_id',null);if(pr.error)throw pr.error;
  var ex=await sb.from('extra_clienti').select('*, apartments(name)').gte('day',r[0]).lte('day',r[1]).order('day');if(ex.error)throw ex.error;
  // lavori confermati sul gruppo WhatsApp «FM programma» (lavori_manuali): contano come chiusi anche se nell'app non lo sono
