@@ -513,6 +513,12 @@ button.acbtn{background:transparent;border:0;border-top:1px solid var(--line);fo
 
 /* 23/10 rapporto settimanale del cliente */
 .rapban{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:2px solid var(--acc,#e0a526);cursor:pointer;font:inherit;color:inherit}
+
+/* 23/10 cruscotto del mese */
+@media (min-width:900px){.acbs.cru4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.acb.okb{border-color:var(--ok)}.acb.badb{border-color:var(--bad)}
+table.crut td,table.crut th{white-space:nowrap;text-align:right}table.crut td:first-child,table.crut th:first-child{text-align:left;white-space:normal}
+table.crut tr.tot td{border-top:2px solid var(--ink,#111);background:var(--tap)}
 </style>
 </head>
 <body>
@@ -1167,6 +1173,53 @@ function vRapp(C){var R=C.rap||{},lun=R.lun||rapLunScorso(),D=R.dati;
  h+='<div class="card"><div class="acr"><span style="flex:1">Richieste che ci avete mandato</span><b>'+D.richieste+'</b></div><div class="acr"><span style="flex:1">Pulizie in programma la settimana dopo</span><b>'+D.prossime+'</b></div></div>'+
   '<p class="note">Contano le pulizie chiuse nell’app con foto e check-list. Ogni pulizia si può rivedere in «Schede» › «Storico e prossime pulizie».</p>';
  return h;}
+// 23/10: cruscotto del mese (solo admin): ricavi per cliente contro costi
+var CRU_GEN='Generale (senza cliente)';
+async function loadCru(K){var r=meseRange(K.m);K.loading=true;
+ if(!S.boss.conti||S.boss.cm!==K.m){S.boss.cm=K.m;S.boss.conti=null;await loadConti();}
+ K.P={};await loadPaghe(K.P,K.m,null);
+ var q=await sb.from('acquisti').select('importo,client,day').gte('day',r[0]).lte('day',r[1]);K.acq=q.error?[]:(q.data||[]);
+ K.loading=false;K.ok=K.m;}
+function cruCalc(B,K){var aptCl={},aptG={};(B.apts||[]).forEach(function(a){aptCl[a.id]=a.client||null;aptG[a.id]=a});
+ var cl={},add=function(c,k,v){c=c||CRU_GEN;var x=cl[c]=cl[c]||{ric:0,pers:0,km:0,bia:0,mat:0,acq:0,ore:0,pass:0};x[k]+=v;};
+ var clienti=[];(B.apts||[]).forEach(function(a){if(a.client&&clienti.indexOf(a.client)<0)clienti.push(a.client)});Object.keys(REGOLE_CONTI).forEach(function(c){if(clienti.indexOf(c)<0)clienti.push(c)});
+ var avvisi={nonChiusi:0,daPrezzare:0,senzaPrezzo:0};
+ clienti.forEach(function(c){var k=contoCliente(B,c);if(k.totale)add(c,'ric',k.totale);avvisi.nonChiusi+=k.nonChiusi.length;avvisi.daPrezzare+=k.daPrezzare;avvisi.senzaPrezzo+=k.manca;});
+ // biancheria e materiali: stima per passaggio chiuso (un appartamento una volta al giorno), dai parametri di Gestione
+ var bp=parVal('biancheria_costo_persona',2.55),mp=parVal('materiali_consumo',2.5)+parVal('attrezzatura_passaggio',0.5),visti={};
+ (B.conti.pass||[]).forEach(function(p0){var a=p0.apartments||{},k=p0.day+'|'+p0.apt_id;if(visti[k]||isServ(a))return;visti[k]=1;if(p0.program&&p0.program.prezzo!=null&&Number(p0.program.prezzo)===0)return;
+  var c=(B.costi||{})[p0.apt_id]||{};add(a.client,'pass',1);add(a.client,'mat',mp);if(c.prezzo_ora==null)add(a.client,'bia',bp*Number((p0.program&&p0.program.guests)||a.guests||(aptG[p0.apt_id]||{}).guests||0));});
+ // personale, km e parcheggi: stesso calcolo di Paghe, diviso fra i clienti in base alle ore di ogni lavoro del giorno
+ var D=K.P.data,ids={},kmOk=true,oreTot=0,fissi=[];(D.manuali||[]).concat(D.passaggi||[],D.spese||[]).forEach(function(x){ids[x.user_id]=1});
+ var oggi=todayStr(),rg=meseRange(K.m);
+ B.ops.forEach(function(o){if(o.role==='admin')return;var costo=o.hourly_cost?Number(o.hourly_cost):parVal('costo_orario_lordo',12),rate=o.has_car?Number(o.km_rate||parVal('rimborso_km',0.3)):0;
+  var fx=orarioFisso(o.id);
+  if(fx&&o.active){var fine=oggi<rg[1]?oggi:rg[1],gg=Math.max(0,Math.round((pdate(fine)-pdate(rg[0]))/864e5)+1),of=(fx[1]-fx[0])*gg;add(null,'pers',of*costo);add(null,'ore',of);oreTot+=of;fissi.push(o.name+' '+gg+' giorni × '+(fx[1]-fx[0])+' h');}
+  if(!ids[o.id])return;
+  giorniPaghe(D,o.id,!!o.has_car,ORE_APP.indexOf(o.username)>=0).forEach(function(g){
+   if(o.has_car&&(g.km==null||g.km<0)&&g.items.length)kmOk=false;
+   var euroOre=(g.oreTot||0)*costo,euroKm=(g.km>0?g.km*rate:0)+(g.park||0);oreTot+=g.oreTot||0;
+   var pesi={},tot=0;g.items.forEach(function(it){var w=it.p?(it.p.closed_at?Math.min(durMin(it.p),(it.p.max_min||90)+(it.p.extra_min||0)+MARGINE_STOP)/60:0):Number(it.ore||it.ore_comp||0);if(!(w>0))w=0.5;var c=aptCl[it.apt_id]||null;pesi[c||'']=(pesi[c||'']||0)+w;tot+=w;});
+   if(!tot){add(null,'pers',euroOre);add(null,'km',euroKm);add(null,'ore',g.oreTot||0);return;}
+   Object.keys(pesi).forEach(function(c){var f=pesi[c]/tot;add(c||null,'pers',euroOre*f);add(c||null,'km',euroKm*f);add(c||null,'ore',(g.oreTot||0)*f);});});});
+ (K.acq||[]).forEach(function(x){add(x.client,'acq',Number(x.importo||0))});
+ var righe=Object.keys(cl).map(function(c){var x=cl[c];x.nome=c;x.costi=x.pers+x.km+x.bia+x.mat+x.acq;x.marg=x.ric-x.costi;return x}).filter(function(x){return x.ric||x.costi}).sort(function(a,b){return a.nome===CRU_GEN?1:b.nome===CRU_GEN?-1:b.ric-a.ric});
+ var T={ric:0,pers:0,km:0,bia:0,mat:0,acq:0,ore:0,pass:0,costi:0,marg:0};righe.forEach(function(x){Object.keys(T).forEach(function(k){T[k]+=x[k]||0})});
+ return {righe:righe,T:T,kmOk:kmOk,avvisi:avvisi,fissi:fissi,oreTot:oreTot};}
+function vCru(B){var K=B.cru=B.cru||{};K.m=K.m||meseDi(todayStr());
+ var h='<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><div class="agh" style="margin:0"><button data-crum="-1">‹</button><h2 style="margin:0;text-transform:capitalize">'+meseNome(K.m)+'</h2><button data-crum="1">›</button></div><button class="mini" data-crurl="1">'+ico('aggiorna')+' Ricalcola</button></div>'+
+  '<p class="note" style="margin:8px 0 0">Ricavi = gli stessi conti di «Conteggi» (passaggi chiusi, extra con prezzo, canoni fissi). Personale = ore di «Paghe» (con il tragitto) × costo orario di ognuno (Dipendenti, altrimenti il parametro «costo orario lordo»), diviso fra i clienti in base al tempo passato da ognuno; chi ha l’orario fisso conta tutte le sue ore. Biancheria e materiali sono STIME dai parametri (biancheria per ospite, materiali e attrezzatura per passaggio). Acquisti = voce Acquisti del mese.</p></div>';
+ if(K.ok!==K.m||!K.P||!K.P.data||!B.conti){if(!K.loading)loadCru(K).then(render).catch(function(e){K.loading=false;fail(e)});return h+'<div class="card"><span class="spin"></span> carico conti, paghe e acquisti del mese…</div>';}
+ var R=cruCalc(B,K),T=R.T,pc=function(a,b){return b?Math.round(a/b*100)+' %':'—'};
+ var box=function(ic,tit,val,sub,cls){return '<div class="acb'+(cls?' '+cls:'')+'">'+mIco(ic,'sghi')+'<div><small>'+tit+'</small><b>'+val+'</b>'+(sub?'<span class="note">'+sub+'</span>':'')+'</div></div>'};
+ h+='<div class="acbs cru4">'+box('conto','Ricavi',eur(T.ric),T.pass+' passaggi')+box('squadra','Costi',eur(T.costi),'personale '+eur(T.pers))+box(T.marg>=0?'fatto':'segnalazione','Margine',eur(T.marg),pc(T.marg,T.ric)+' dei ricavi',T.marg>=0?'okb':'badb')+box('orario','Ore della squadra',fmt(Math.round(R.oreTot*60)),R.oreTot?'ricavo '+eur(T.ric/R.oreTot)+' per ora':'')+'</div>';
+ if(!R.kmOk)h+='<p class="note"><span class="spin"></span> sto calcolando i km dei giri: i numeri si aggiornano da soli.</p>';
+ h+='<div class="card"><h2>Per cliente</h2><div class="gt"><table class="crut"><tr><th>Cliente</th><th>Ricavi</th><th>Personale</th><th>Km e parcheggi</th><th>Biancheria*</th><th>Materiali*</th><th>Acquisti</th><th>Costi</th><th>Margine</th><th>%</th><th>Ore</th></tr>'+
+  R.righe.concat([Object.assign({nome:'Totale',tot:true},T)]).map(function(x){var neg=x.marg<0;return '<tr'+(x.tot?' class="tot"':'')+'><td><b>'+esc(x.nome)+'</b>'+(x.pass?'<br><span class="note">'+x.pass+' passaggi</span>':'')+'</td><td><b>'+eur(x.ric)+'</b></td><td>'+eur(x.pers)+'</td><td>'+eur(x.km)+'</td><td>'+eur(x.bia)+'</td><td>'+eur(x.mat)+'</td><td>'+eur(x.acq)+'</td><td>'+eur(x.costi)+'</td><td style="color:var('+(neg?'--bad':'--ok')+')"><b>'+eur(x.marg)+'</b></td><td>'+(x.ric?pc(x.marg,x.ric):'—')+'</td><td>'+fmt(Math.round((x.ore||0)*60))+'</td></tr>'}).join('')+'</table></div>'+
+  '<p class="note" style="margin-top:8px">* stima. «'+CRU_GEN+'» = uffici e servizi senza prezzo, ore fuori dai lavori'+(R.fissi.length?', orario fisso ('+esc(R.fissi.join(', '))+')':'')+', acquisti non legati a un cliente.</p></div>';
+ var A=R.avvisi,av=[];if(A.nonChiusi)av.push(A.nonChiusi+' pulizie passate non chiuse nell’app (non sono nei ricavi: chiudile in «Da sistemare»)');if(A.daPrezzare)av.push(A.daPrezzare+' extra da prezzare');if(A.senzaPrezzo)av.push(A.senzaPrezzo+' passaggi senza prezzo dell’appartamento');
+ if(av.length)h+='<div class="card" style="border-left:4px solid var(--warn)"><h2>Da controllare</h2>'+av.map(function(t){return '<p class="note" style="margin:4px 0">• '+t+'</p>'}).join('')+'</div>';
+ return h;}
 function vAcq(B){var A=B.acq=B.acq||{};A.m=A.m||meseDi(todayStr());A.f=A.f||'tutti';var F=B.af||{},g=function(k,d){return F[k]!=null?F[k]:(d||'')};
  var resp=(B.ops||[]).filter(function(o){return o.active&&(o.role==='boss'||o.role==='admin')&&o.username!=='nexus'}).sort(function(a,b){return a.name<b.name?-1:1});
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.active&&a.client&&clienti.indexOf(a.client)<0&&!isServ(a))clienti.push(a.client)});clienti.sort();
@@ -1802,8 +1855,9 @@ function vGest(B){
  var zones=[];B.apts.forEach(function(a){if(a.zone&&zones.indexOf(a.zone)<0)zones.push(a.zone)});zones.sort();
  var zf=B.gzone||'';
  var apts=B.apts.filter(function(a){return a.active&&!isServ(a)&&(!zf||a.zone===zf)});
- var sub=B.gsub||'apts';var tabs=[['apts','Appartamenti'],['conti','Conteggi'],['paghe','Paghe'],['qual','Qualità'],['ops','Dipendenti'],['par','Parametri']];
+ var sub=B.gsub||'apts';var tabs=[['cru','Cruscotto'],['apts','Appartamenti'],['conti','Conteggi'],['paghe','Paghe'],['qual','Qualità'],['ops','Dipendenti'],['par','Parametri']];
  var h='<div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h1 style="margin:0">Gestione <span class="note">solo tu e NEXUS</span></h1><span class="seg">'+tabs.map(function(t){return '<button class="'+(sub===t[0]?'on':'')+'" data-gsub="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</span></div>';
+ if(sub==='cru') return h+vCru(B);
  if(sub==='conti') return h+vConti(B);
  if(sub==='paghe') return h+vPaghe(B);
  if(sub==='qual') return h+vQual(B);
@@ -1988,6 +2042,8 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.crum){var KK=S.boss.cru=S.boss.cru||{};var m0=KK.m||meseDi(todayStr());var dk=new Date(Number(m0.slice(0,4)),Number(m0.slice(5,7))-1+Number(d.crum),1);KK.m=dk.getFullYear()+'-'+pad2(dk.getMonth()+1);KK.ok=null;render();return;}
+ if(d.crurl){var K2=S.boss.cru||{};K2.ok=null;S.boss.conti=null;render();return;}
  if(d.crap){S.cl.tab='rapp';S.cl.det=null;S.cl.aptPage=null;window.scrollTo(0,0);caricaRap(d.crap);return;}
  if(d.capt){S.cl.aptPage=Number(d.capt);window.scrollTo(0,0);caricaAptCl(S.cl.aptPage);return;}
  if(d.captx){S.cl.aptPage=null;S.cl.aptDati=null;render();return;}
