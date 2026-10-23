@@ -519,6 +519,12 @@ button.acbtn{background:transparent;border:0;border-top:1px solid var(--line);fo
 .acb.okb{border-color:var(--ok)}.acb.badb{border-color:var(--bad)}
 table.crut td,table.crut th{white-space:nowrap;text-align:right}table.crut td:first-child,table.crut th:first-child{text-align:left;white-space:normal}
 table.crut tr.tot td{border-top:2px solid var(--ink,#111);background:var(--tap)}
+
+/* 23/10 borse della biancheria */
+.bsr{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.bsr.ok{opacity:.6}.bsr.ok b{text-decoration:line-through}
+.bsck{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mute);cursor:pointer;flex:none;width:44px}
+.bsck input{width:24px;height:24px}
 </style>
 </head>
 <body>
@@ -1093,7 +1099,7 @@ async function loadBia(A){A.loading=true;try{var q=await sb.from('biancheria_cli
 function vBia(B){var A=B.bia=B.bia||{};var F=B.bf||{},g=function(k,d){return F[k]!=null?F[k]:(d||'')};
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.active&&a.client&&clienti.indexOf(a.client)<0&&!isServ(a))clienti.push(a.client)});clienti.sort();
  var clDef=clienti.indexOf('Immobili e Soluzioni')>=0?'Immobili e Soluzioni':'',fl=B.bfiles||[];
- var h='<h1>Biancheria in ufficio</h1><div class="card" style="border:2px solid var(--acc)"><h2 style="margin-bottom:6px">Biancheria lasciata a un cliente</h2><p class="note" style="margin:0 0 8px">La scorta che lasciamo nel loro ufficio per gli ospiti dell’ultimo minuto. Scrivi quanti pezzi e fai la foto come prova: il cliente la vede nella sua area. Per ora senza prezzi.</p>'+
+ var h=borseCard(B)+'<h1 style="margin-top:22px">Biancheria in ufficio</h1><div class="card" style="border:2px solid var(--acc)"><h2 style="margin-bottom:6px">Biancheria lasciata a un cliente</h2><p class="note" style="margin:0 0 8px">La scorta che lasciamo nel loro ufficio per gli ospiti dell’ultimo minuto. Scrivi quanti pezzi e fai la foto come prova: il cliente la vede nella sua area. Per ora senza prezzi.</p>'+
   '<div class="row" style="gap:8px;flex-wrap:wrap"><label class="f" style="flex:0 0 auto">Giorno<input type="date" id="bi_day" value="'+esc(g('bi_day',todayStr()))+'"></label><label class="f" style="flex:1;min-width:170px">Cliente<select id="bi_cl"><option value="">— scegli —</option>'+clienti.map(function(c){return '<option '+(g('bi_cl',clDef)===c?'selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select></label></div>'+
   '<div class="row" style="gap:8px;flex-wrap:wrap">'+BIA_VOCI.map(function(k){return '<label class="f" style="flex:1 1 140px">'+k[1]+'<input type="number" id="bi_q_'+k[0]+'" min="0" step="1" inputmode="numeric" placeholder="0" value="'+esc(g('bi_q_'+k[0]))+'"></label>'}).join('')+'</div>'+
   '<label class="f">Nota<input type="text" id="bi_nota" maxlength="200" placeholder="es. 2 coperte in più, lasciata in reception" value="'+esc(g('bi_nota'))+'"></label>'+
@@ -1249,6 +1255,46 @@ function vAptB(B){var a=(B.apts||[]).filter(function(x){return x.id===B.aptPage}
  h+='<div class="card"><h2 style="margin-bottom:6px">Storico</h2>'+(storico.length?storico.map(function(x){var q=x.pas.filter(function(z){return z.closed_at})[0]||{},dm=q.started_at?durMin(q):null,ov=q.over_by_min>0;
    return '<button class="acr acbtn" data-baptdet="'+x.id+'" data-baptday="'+x.day+'"><span class="gg">'+gg(x.day)+'</span><span style="flex:1;min-width:0">'+(x.segnalazione_id?'<b>🔧 Manutenzione</b> ':'')+chi(x)+(x.giorno_cliente?' <span class="pill grey">al cliente il '+pdate(x.giorno_cliente).fmD({day:'numeric',month:'short'})+'</span>':'')+(q.non_pagato?' <span class="pill grey">non pagato</span>':'')+'<br><span class="note">'+esc([x.guests?x.guests+' ospiti':'',x.note||''].filter(Boolean).join(' · '))+'</span></span><span class="pill '+(ov?'bad':'ok')+'">'+(dm!=null?fmt(dm):'fatto')+'</span><span class="sgar">›</span></button>'}).join(''):'<p class="note">Nessuna pulizia chiusa negli ultimi 4 mesi.</p>')+'</div>';
  return h;}
+// 23/10: borse della biancheria da preparare per il giorno (una per pulizia)
+var BS_T={it:{tit:'Borse da preparare',borsa:'Borsa da',kit:'kit',matr:'matrimoniale',matrs:'matrimoniali',sing:'singolo',sings:'singoli',div:'divano letto',nolet:'letti non indicati nella scheda',manca:'i letti della scheda non bastano',pronta:'Pronta',dafare:'Da preparare',per:'per',tutte:'Tutte pronte!',vuoto:'Nessuna borsa da preparare per questo giorno.',borse:'borse',apri:'Apri la lista',oggi:'oggi',domani:'domani',daass:'Da assegnare'},
+ en:{tit:'Bags to prepare',borsa:'Bag for',kit:'kits',matr:'double bed',matrs:'double beds',sing:'single bed',sings:'single beds',div:'sofa bed',nolet:'beds not listed in the info sheet',manca:'not enough beds in the info sheet',pronta:'Ready',dafare:'To prepare',per:'for',tutte:'All ready!',vuoto:'No bags to prepare for this day.',borse:'bags',apri:'Open the list',oggi:'today',domani:'tomorrow',daass:'Not assigned'},
+ si:{tit:'සූදානම් කළ යුතු බෑග්',borsa:'බෑගය:',kit:'කට්ටල',matr:'ද්විත්ව ඇඳ',matrs:'ද්විත්ව ඇඳන්',sing:'තනි ඇඳ',sings:'තනි ඇඳන්',div:'සෝෆා ඇඳ',nolet:'තොරතුරු පත්‍රයේ ඇඳන් සඳහන් නැත',manca:'තොරතුරු පත්‍රයේ ඇඳන් ප්‍රමාණවත් නැත',pronta:'සූදානම්',dafare:'සූදානම් කිරීමට',per:'සඳහා',tutte:'සියල්ල සූදානම්!',vuoto:'මෙම දිනයට බෑග් නැත.',borse:'බෑග්',apri:'ලැයිස්තුව විවෘත කරන්න',oggi:'අද',domani:'හෙට',daass:'පවරා නැත'},
+ ar:{tit:'حقائب للتحضير',borsa:'حقيبة لـ',kit:'أطقم',matr:'سرير مزدوج',matrs:'أسرّة مزدوجة',sing:'سرير فردي',sings:'أسرّة فردية',div:'أريكة سرير',nolet:'الأسرّة غير مذكورة في البطاقة',manca:'الأسرّة في البطاقة غير كافية',pronta:'جاهزة',dafare:'للتحضير',per:'لـ',tutte:'كلها جاهزة!',vuoto:'لا توجد حقائب لهذا اليوم.',borse:'حقائب',apri:'افتحي القائمة',oggi:'اليوم',domani:'غدًا',daass:'غير مُسندة'}};
+function bsT(k){var L=(!isBoss()&&S.profile&&BS_T[S.profile.lang])||BS_T.it;return L[k]||BS_T.it[k];}
+// letti dalla scheda («Posti letto», es. «matrimoniale + 2 singoli», «matrimoniale + divano letto matrimoniale», «3 singoli»)
+function lettiDi(t){t=String(t||'').toLowerCase();if(!t)return null;var m=0,s1=0,dv=0;
+ t.split(/\+|,| e /).forEach(function(p0){var q=p0.trim(),nn=Number((/(\d+)/.exec(q)||[])[1]||1);if(/divano/.test(q)){if(/matrimonial/.test(q))m+=nn,dv+=nn;else s1+=nn,dv+=nn;}else if(/matrimonial|doppi|queen|king/.test(q))m+=nn;else if(/singol|castello/.test(q))s1+=nn*(/castello/.test(q)?2:1);});
+ return (m||s1)?{m:m,s:s1,dv:dv}:null;}
+function borsaDi(b){var G=Number(b.guests)||2,L=lettiDi(b.beds),r={kit:G,m:0,s:0,noL:!L,manca:0};if(!L)return r;
+ var rest=G;while(r.m<L.m&&rest>=2){r.m++;rest-=2;}var su=Math.min(L.s,rest);r.s=su;rest-=su;if(rest>0&&r.m<L.m){r.m++;rest=0;}r.manca=Math.max(0,rest);return r;}
+function borsaTxt(r){var p=[];if(r.m)p.push(r.m+' '+(r.m===1?bsT('matr'):bsT('matrs')));if(r.s)p.push(r.s+' '+(r.s===1?bsT('sing'):bsT('sings')));
+ return (p.length?p.join(' + '):'')+(r.noL?'<span class="note">'+(p.length?' · ':'')+bsT('nolet')+'</span>':'')+(r.manca?' <span class="pill warn">'+bsT('manca')+'</span>':'');}
+async function caricaBorse(K,day){K.day=day;K.rows=null;render();var q=await sb.rpc('borse_giorno',{p_day:day});if(q.error){K.rows=[];K.err=q.error.message;if(!/autorizzato/.test(q.error.message))logErr('borse',q.error);}else{K.rows=q.data||[];K.err=null;}render();}
+function borseDay0(){var h=new Date().getHours();return h>=12?addDays(todayStr(),1):todayStr();}
+function borseLista(K,boss){var R=K.rows||[],tot=0,mt=0,st=0,pr=0;R.forEach(function(b){var x=borsaDi(b);tot+=x.kit;mt+=x.m;st+=x.s;if(b.pronta_at)pr++;});
+ var gg=pdate(K.day).fmD({weekday:'long',day:'numeric',month:'long'}),rel=K.day===todayStr()?' · '+bsT('oggi'):K.day===addDays(todayStr(),1)?' · '+bsT('domani'):'';
+ var h='<div class="cdh" style="margin:6px 0 10px"><button class="rnd" data-bsday="'+addDays(K.day,-1)+'">‹</button><span class="cdl" style="flex:1;justify-content:center">'+mIco('biancheria','cdi')+'<span>'+gg+rel+'</span></span><button class="rnd" data-bsday="'+addDays(K.day,1)+'">›</button></div>';
+ if(!K.rows)return h+'<div class="card"><span class="spin"></span></div>';
+ if(!R.length)return h+vuoto('biancheria',bsT('vuoto'));
+ h+='<div class="acbs cru4">'+[['biancheria',bsT('borse'),R.length,pr+' '+bsT('pronta').toLowerCase()],['letto',bsT('kit'),tot,''],['letto',bsT('matrs'),mt,''],['letto',bsT('sings'),st,'']].map(function(x){return '<div class="acb">'+mIco(x[0],'sghi')+'<div><small>'+x[1]+'</small><b>'+x[2]+'</b>'+(x[3]?'<span class="note">'+x[3]+'</span>':'')+'</div></div>'}).join('')+'</div>';
+ if(pr===R.length)h+='<div class="card" style="border-left:4px solid var(--ok)"><b>'+mIco('fatto','mi')+' '+bsT('tutte')+'</b></div>';
+ var pers=(S.boss&&S.boss.ops||[]).filter(function(o){return o.active&&o.role!=='client'&&o.role!=='admin'||o.id===(S.profile&&S.profile.id)});
+ if(boss){var tutti=R.every(function(b){return b.preparata_da&&b.preparata_da===R[0].preparata_da})?R[0].preparata_da:'';
+  h+='<div class="card"><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><b style="flex:1;min-width:160px">Chi prepara le borse</b><select id="bs_chi" style="width:auto;padding:6px"><option value="">— scegli —</option>'+pers.map(function(o){return '<option value="'+o.id+'" '+(tutti===o.id?'selected':'')+'>'+esc(o.name)+'</option>'}).join('')+'</select><button class="mini acc" data-bsall="1">Assegna tutte</button></div><p class="note" style="margin:6px 0 0">Chi le prepara trova la lista nella sua app (le ragazze in «Oggi»). Puoi anche cambiare persona su una borsa sola.</p></div>';}
+ var grp={},ord=[];R.forEach(function(b){var k=b.chi_nome||'';if(!grp[k]){grp[k]=[];ord.push(k)}grp[k].push(b)});
+ ord.forEach(function(k){h+='<div class="card"><div class="row" style="gap:8px;align-items:center;margin-bottom:4px">'+(k?avatar(k):mIco('daassegnare','av'))+'<b style="flex:1" data-notr="1">'+(k?esc(k):bsT('daass'))+'</b><span class="note">'+grp[k].length+' '+bsT('borse')+'</span></div>'+
+  grp[k].map(function(b){var x=borsaDi(b),nb=(b.note&&/bianch|letto|lettino|culla|divano|ospite/i.test(b.note))?b.note:'';
+   return '<div class="bsr'+(b.pronta_at?' ok':'')+'"><label class="bsck"><input type="checkbox" data-bspronta="'+b.program_id+'" '+(b.pronta_at?'checked':'')+'><span>'+bsT('pronta')+'</span></label>'+covThumb(b.apt_id)+'<span style="flex:1;min-width:0"><b data-notr="1">'+esc(b.apt)+'</b><br><span data-notr="1"><b>'+bsT('borsa')+' '+x.kit+' '+bsT('kit')+'</b>'+(borsaTxt(x)?' · '+borsaTxt(x):'')+'</span>'+(nb?'<br><span class="note">'+esc(nt(nb))+'</span>':'')+
+    (boss?'<br><select data-bsprep="'+b.program_id+'" style="width:auto;padding:4px;font-size:13px;margin-top:4px"><option value="">'+bsT('daass')+'</option>'+pers.map(function(o){return '<option value="'+o.id+'" '+(b.preparata_da===o.id?'selected':'')+'>Prepara: '+esc(o.name)+'</option>'}).join('')+'</select>':'')+'</span></div>'}).join('')+'</div>';});
+ return h;}
+function borseCard(B){var K=B.borse=B.borse||{};if(!K.day){K.day=borseDay0();caricaBorse(K,K.day);}
+ return '<h1>'+mIco('biancheria','hic')+' Borse da preparare</h1><p class="note" style="margin:0 0 6px">Una borsa per ogni pulizia del giorno: un kit per ospite (2 se il numero non è segnato), letti presi dalla scheda dell’appartamento («Posti letto»). Si aggiorna da sola quando cambia il programma.</p>'+borseLista(K,true);}
+// ragazza a cui sono state assegnate le borse: riquadro in Oggi e pagina della lista
+function bsOpCard(){if(isBoss())return '';var c=S._bsMie;if(!c||Date.now()-c.t>300000){S._bsMie={t:Date.now(),L:(c&&c.L)||[]};sb.from('borse').select('day,pronta_at').eq('preparata_da',S.user.id).gte('day',todayStr()).lte('day',addDays(todayStr(),1)).then(function(r){S._bsMie={t:Date.now(),L:r.data||[]};if((r.data||[]).length)render();});}
+ var L=S._bsMie.L;if(!L.length)return '';var gs=[todayStr(),addDays(todayStr(),1)].filter(function(d){return L.some(function(x){return x.day===d})});
+ return gs.map(function(d){var n0=L.filter(function(x){return x.day===d}).length,okk=L.filter(function(x){return x.day===d&&x.pronta_at}).length;return '<button class="card rapban" data-bsop="'+d+'">'+mIco('biancheria','sghi')+'<span style="flex:1"><b>'+bsT('tit')+' · '+(d===todayStr()?bsT('oggi'):bsT('domani'))+'</b><br><span class="note">'+okk+'/'+n0+' '+bsT('pronta').toLowerCase()+'</span></span><span class="sgar">›</span></button>'}).join('');}
+function vBorseOp(){var K=S.bsOp=S.bsOp||{};var body='<div class="row" style="justify-content:space-between"><h1 style="margin:0">'+bsT('tit')+'</h1><button class="mini" data-go="oggi">←</button></div>'+borseLista(K,false);
+ return topbar(bsT('tit'),null,'<button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button>')+shellOp('oggi',body,'narrow');}
 function vAcq(B){var A=B.acq=B.acq||{};A.m=A.m||meseDi(todayStr());A.f=A.f||'tutti';var F=B.af||{},g=function(k,d){return F[k]!=null?F[k]:(d||'')};
  var resp=(B.ops||[]).filter(function(o){return o.active&&(o.role==='boss'||o.role==='admin')&&o.username!=='nexus'}).sort(function(a,b){return a.name<b.name?-1:1});
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.active&&a.client&&clienti.indexOf(a.client)<0&&!isServ(a))clienti.push(a.client)});clienti.sort();
@@ -1397,7 +1443,8 @@ function vOggi(){
  var rows=(mIds.length?'<h2 style="margin:14px 0 6px">🔧 Manutenzioni</h2>'+mIds.map(rowOf).join('')+(cIds.length?'<h2 style="margin:14px 0 6px">🧹 Appartamenti da pulire</h2>':''):'')+cIds.map(rowOf).join('');
  var dn=0;DAYCHK.forEach(function(x,i){if(S.day[i])dn++});var sets=0;var nAp=0;ids.forEach(function(pr){if(isServ(pr.apartments))return;nAp++;sets+=setAttesi(pr)});
  var daycard='<div class="card"><div class="row" style="justify-content:space-between"><h2>Prima di partire</h2><button class="mini" data-dayopen="1">'+(S.dayOpen?'Nascondi':dn+'/'+DAYCHK.length+' ✔')+'</button></div>'+(S.dayOpen?'<p class="note" style="margin:8px 0 4px">Oggi ti servono circa <b>'+sets+' kit</b> di biancheria per '+nAp+' appartamenti.</p>'+DAYCHK.map(function(x,i){return '<div class="chk"><input type="checkbox" id="d'+i+'" data-daychk="'+i+'" '+(S.day[i]?'checked':'')+'><label for="d'+i+'">'+x+'</label></div>';}).join(''):'')+'</div>';
- var offbox=off.map(function(pr){return '<div class="card" style="background:var(--blue-bg);border-color:var(--blue)"><b>'+KINDS[pr.kind]+'</b>'+(pr.note?' · '+esc(nt(pr.note)):'')+'</div>'}).join('');
+ var bsbox=bsOpCard();
+ var offbox=bsbox+off.map(function(pr){return '<div class="card" style="background:var(--blue-bg);border-color:var(--blue)"><b>'+KINDS[pr.kind]+'</b>'+(pr.note?' · '+esc(nt(pr.note)):'')+'</div>'}).join('');
  var body=(S.actAs?'<div class="card" style="border:2px solid var(--warn)"><b>Stai lavorando al posto di '+esc(u.name)+'</b><p class="note" style="margin:4px 0 0">Quello che apri, spunti e chiudi resta registrato a suo nome. Le foto risultano caricate da te.</p></div>':'')+'<h1>'+(S.actAs&&S.actDay!==todayStr()?dlong(S.actDay):'Oggi, '+dlong(todayStr()))+'</h1>'+(!S.actAs&&!avvisiSi()?'<div class="card" style="border:2px solid var(--acc)"><b>🔔 Attiva le notifiche</b><p class="note" style="margin:4px 0 8px">Ti avviso quando cambia il tuo programma, la sera alle 22 con il programma di domani e quando finisce il tempo.</p><button class="btn acc" data-avvisi="1">Attiva le notifiche</button></div>':'')+offbox+(haAuto()&&ids.length?(function(){var tp=(S.spese||[]).reduce(function(t,x){return t+Number(x.importo)},0);return '<button class="btn ghost" data-pkhome="1">🅿️ Parcheggio pagato'+(tp?' · '+eur(tp)+' oggi':'')+'</button>';})():'')+(ids.length?'<div class="row"><span class="pill '+(done===ids.length?'ok':'grey')+'">'+done+' di '+ids.length+' chiusi</span></div>'+giroBtn(ids)+(S.actAs?'':daycard)+rows:(off.length?'':vuoto('riposo','Nessun appartamento assegnato oggi. Guarda l’agenda per i prossimi giorni.')));
  return topbar(S.actAs?'Al posto di '+esc(u.name.split(' ')[0]):'Ciao '+esc(u.name),null,(S.actAs?'':'<button data-avvisi="1" title="Notifiche">'+(avvisiSi()?ico('bell'):ico('belloff'))+'</button>')+'<button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button>'+(S.actAs?'<button data-actas="">← Pannello</button>':'<button data-logout="1">Esci</button>'))+shellOp('oggi',body,'narrow');
 }
@@ -1984,7 +2031,7 @@ function apriSegnPend(){var id=S._apriSegn;if(!id||!S.user)return;var L=isClient
 if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',function(e){var m=e.data&&/^#segn-(\d+)$/.exec(e.data.fmApri||'');if(m){S._apriSegn=m[1];apriSegnPend();}else if(e.data&&e.data.fmApri==='#rapporto'&&isClient()&&S.cl){S.cl.tab='rapp';caricaRap(rapLunScorso());}});
 function render(){
  var v=S.view,h;
- if(!S.user||v==='login')h=vLogin();else if(v==='newpin')h=vNewPin();else if(isClient())h=vClient();else if(isBoss()&&!S.actAs)h=(S.boss.tab==='agenda')?vAgenda():vBoss();else if(v==='agenda')h=vAgenda();else if(v==='apts')h=vAptsOp();else if(v==='ore')h=vOre();else if(v==='aptinfo')h=vAptInfo();else if(v==='apt')h=vApt();else if(v==='check')h=vCheck();else if(v==='manca')h=vManca();else if(v==='segnala')h=vSegnala();else if(v==='parcheggio')h=vParcheggio();else if(v==='scheda')h=vScheda();else if(v==='schedaag')h=vSchedaAg();else h=vOggi();
+ if(!S.user||v==='login')h=vLogin();else if(v==='newpin')h=vNewPin();else if(isClient())h=vClient();else if(isBoss()&&!S.actAs)h=(S.boss.tab==='agenda')?vAgenda():vBoss();else if(v==='borse')h=vBorseOp();else if(v==='agenda')h=vAgenda();else if(v==='apts')h=vAptsOp();else if(v==='ore')h=vOre();else if(v==='aptinfo')h=vAptInfo();else if(v==='apt')h=vApt();else if(v==='check')h=vCheck();else if(v==='manca')h=vManca();else if(v==='segnala')h=vSegnala();else if(v==='parcheggio')h=vParcheggio();else if(v==='scheda')h=vScheda();else if(v==='schedaag')h=vSchedaAg();else h=vOggi();
  if(S.festa&&S.user&&!isClient())h+=festaHtml();
  app.replaceChildren(frag(h));if(S._apriSegn)setTimeout(apriSegnPend,0);
  traduci(app);emoIcone(app);
@@ -2072,6 +2119,10 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.bsday){var KB=isBoss()&&!S.actAs?(S.boss.borse=S.boss.borse||{}):(S.bsOp=S.bsOp||{});caricaBorse(KB,d.bsday);return;}
+ if(d.bsop){S.view='borse';window.scrollTo(0,0);caricaBorse(S.bsOp=S.bsOp||{},d.bsop);return;}
+ if(d.bsall){var chi=(document.getElementById('bs_chi')||{}).value;if(!chi){toast('Scegli chi prepara le borse');return;}var KA=S.boss.borse,up=(KA.rows||[]).map(function(b){return {program_id:b.program_id,day:KA.day,preparata_da:chi,aggiornato:new Date().toISOString()}});if(!up.length)return;
+  var ra=await sb.from('borse').upsert(up,{onConflict:'program_id'});if(ra.error)throw ra.error;toast('Borse assegnate');caricaBorse(KA,KA.day);return;}
  if(d.bapt){S.boss.aptPage=Number(d.bapt);S.boss.editApt=null;window.scrollTo(0,0);caricaAptB(S.boss.aptPage);return;}
  if(d.baptx){S.boss.aptPage=null;S.boss.aptDati=null;render();return;}
  if(d.baptdet){S.boss._torna={date:S.boss.date};S.boss.tab='oggi';S.view='boss';S.boss.date=d.baptday;S.boss.viewPass=null;await loadBoss();S.boss.viewPass=Number(d.baptdet);render();window.scrollTo(0,0);return;}
@@ -2354,6 +2405,11 @@ app.addEventListener('input',function(e){if(e.target.id==='cq'&&S.cl){S.cl.cq=e.
 app.addEventListener('change',async function(e){
  var t=e.target,d=t.dataset;
  try{
+ if(d.bsprep){var KP=S.boss.borse,rp=await sb.from('borse').upsert({program_id:Number(d.bsprep),day:KP.day,preparata_da:t.value||null,aggiornato:new Date().toISOString()},{onConflict:'program_id'});if(rp.error)throw rp.error;(KP.rows||[]).forEach(function(b){if(b.program_id===Number(d.bsprep))b.preparata_da=t.value||null});toast('Salvato');return;}
+ if(d.bspronta){var bossB=isBoss()&&!S.actAs,KQ=bossB?S.boss.borse:S.bsOp,si=t.checked,pid=Number(d.bspronta),rq;
+  if(bossB)rq=await sb.from('borse').upsert({program_id:pid,day:KQ.day,pronta_at:si?new Date().toISOString():null,pronta_by:si?S.user.id:null,aggiornato:new Date().toISOString()},{onConflict:'program_id'});
+  else rq=await sb.rpc('borsa_pronta',{p_program:pid,p_si:si});
+  if(rq.error){t.checked=!si;throw rq.error;}(KQ.rows||[]).forEach(function(b){if(b.program_id===pid)b.pronta_at=si?new Date().toISOString():null});S._bsMie=null;render();return;}
  if(d.spg){var S1=spSel(S.boss);d.spg.split(',').forEach(function(x){if(t.checked)S1[x]=true;else delete S1[x]});render();return;}
  if(d.sgrv){await sgrSalva(d.sgrv,{fatto_at:t.checked?new Date().toISOString():null});var bx=t.closest('.sgrv');if(bx)bx.classList.toggle('ok',t.checked);var sm=document.querySelector('.sgrc .sght small');if(sm){var nf=(S.boss.sgr||[]).filter(function(x){return x.user_id===S.user.id&&x.turno===sgrTurno()&&x.fatto_at}).length;sm.textContent=nf+' su '+SGR_N+' fatte · si salva da sola';var bar=document.querySelector('.sgrc .rpb i');if(bar)bar.style.width=Math.round(nf/SGR_N*100)+'%';}return;}
  if(d.sgrn){var nv=t.value===''?null:Math.max(0,parseInt(t.value,10)||0);await sgrSalva(d.sgrn,{numero:nv});toast('Salvato');return;}
