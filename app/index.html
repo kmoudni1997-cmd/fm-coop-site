@@ -1196,7 +1196,9 @@ function shellWith(items,active,attr,main,cls){var b=navItems(items,active,attr)
 var OP_NAV=[['oggi','🏠','Oggi'],['agenda','📅','Agenda'],['apts','🏢','Appartamenti'],['ore','🕒','Ore']];
 var BOSS_NAV=[['oggi','🏠','Oggi'],['agenda','📅','Agenda'],['apts','🏢','Appartamenti'],['spesa','🧴','Spesa'],['segn','📸','Segnalazioni'],['acq','🧾','Acquisti'],['bia','🛏','Biancheria'],['utenti','👥','Utenti']];
 function shellOp(active,main,cls){return shellWith(OP_NAV,active,'go',main,cls);}
-function shellBoss(active,main,cls){return shellWith(isAdmin()?BOSS_NAV.concat([['gest','⚙️','Gestione']]):BOSS_NAV,active,'tab',main,cls);}
+// 23/10: menu della segreteria (Siham): niente Utenti né Gestione
+var SEG_NAV=[['oggi','🏠','La mia giornata'],['agenda','📅','Agenda'],['segn','📸','Segnalazioni'],['apts','🏢','Appartamenti'],['spesa','🧴','Spesa'],['acq','🧾','Acquisti'],['bia','🛏','Biancheria']];
+function shellBoss(active,main,cls){return shellWith(segr()?SEG_NAV:isAdmin()?BOSS_NAV.concat([['gest','⚙️','Gestione']]):BOSS_NAV,active,'tab',main,cls);}
 
 // ===== VISTE OPERATRICE =====
 function saluto(u){u=String(u||'').trim();if(!u)return '<h1>Chi sei?</h1>';var nm=u.charAt(0).toUpperCase()+u.slice(1).toLowerCase();return avatar(nm,'lav')+'<h1>Ciao '+esc(nm)+' 👋</h1>';}
@@ -1727,6 +1729,7 @@ function vGest(B){
  return h;
 }
 function vBoss(){
+ if(segr()&&(S.boss.tab==='utenti'||S.boss.tab==='gest'))S.boss.tab='oggi';
  var B=S.boss,tab=B.tab,body='';
  var byProg={};B.passaggi.forEach(function(p){byProg[p.program_id]=p});
  function stOf(pr){var p=byProg[pr.id];if(!p)return'todo';if(p.closed_at)return'done';if(elapsedMin(p)>=maxOf(pr,p))return'over';return'doing';}
