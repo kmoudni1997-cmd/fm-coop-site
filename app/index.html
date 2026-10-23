@@ -453,7 +453,8 @@ main.login{margin-top:0}
 
 /* 22/10 area I&S: segnalazioni a voci, via libera */
 .sgcols{display:flex;flex-direction:column;gap:10px;margin-top:12px}
-@media (min-width:900px){.sgcols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:start}}
+@media (min-width:900px){.sgcols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch}.sgcols .sghead{order:1}.sgcols .csglist{order:2;grid-column:1/-1}}
+.sghead.on{border-width:2px}.sghead.on.bad{border-color:var(--bad)}.sghead.on.warn{border-color:var(--warn)}.sghead.on.blu{border-color:var(--blue)}.sghead.on.ok{border-color:var(--ok)}
 .sghead{width:100%;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .sgcol.op .sghead{border-width:2px;margin-bottom:8px}
 .sghi{width:34px;height:34px;flex:none}.sght{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}.sght small{color:var(--mute);font-size:12px}
@@ -1134,8 +1135,8 @@ var MANUT_RX=/porta|maniglia|rete|cappa|tappo|presa|luce|rubinett|scaric|mur
 function soloCorredo(s){return isCorredo(s)&&!MANUT_RX.test(s.text||'');}
 // voce richiudibile della pagina Segnalazioni del cliente
 function clSegnLista(key,tit,ic,sub,L,vuoto,cls){var C=S.cl,op=!!(C.sgOpen&&C.sgOpen[key]);
- return '<div class="sgcol'+(op?' op':'')+'"><button class="sghead '+(cls||'')+'" data-csgo="'+key+'">'+mIco(ic,'sghi')+'<span class="sght"><b>'+tit+'</b><small>'+sub+'</small></span><span class="sgn">'+L.length+'</span><span class="sgar">'+(op?'▴':'▾')+'</span></button>'+
-  (op?(L.length?L.map(function(s){return clCardSegn(s,true)}).join(''):'<div class="card"><p class="note" style="margin:0">'+vuoto+'</p></div>'):'')+'</div>';}
+ return '<button class="sghead '+(cls||'')+(op?' on':'')+'" data-csgo="'+key+'">'+mIco(ic,'sghi')+'<span class="sght"><b>'+tit+'</b><small>'+sub+'</small></span><span class="sgn">'+L.length+'</span><span class="sgar">'+(op?'▴':'▾')+'</span></button>'+
+  (op?'<div class="csglist">'+(L.length?'<div class="two">'+L.map(function(s){return clCardSegn(s,true)}).join('')+'</div>':'<div class="card"><p class="note" style="margin:0">'+vuoto+'</p></div>')+'</div>':'');}
 function quasiFinito(p2){try{var pr=S.apt;if(!pr||!p2||p2.closed_at||p2._qf||!pr.apartments||isServ(pr.apartments)||pr.nascosto_cliente)return;var have=S.photos[p2.id]||{};
  var manca=fotoDi(pr,p2).filter(function(k){return !have[k]});if(manca.length===1&&manca[0]==='Chiavi nel lucchetto'){p2._qf=true;sb.rpc('avvisa_quasi_finito',{p_passaggio:p2.id}).then(function(r){if(r.error)logErr('quasi-finito',r.error);});}}catch(e){}}
 function clCardSegn(s,conApp){return '<div class="card" id="sg-'+s.id+'"><div class="row"><span class="pill '+(s.status==='chiusa'?'ok':s.status==='presa'?'warn':'bad')+'">'+esc(s.type)+'</span><span style="margin-left:auto;color:var(--mute);font-size:13px">'+new Date(s.created_at).fmD()+' '+hm(s.created_at)+'</span></div>'+(conApp&&s.apartments?'<p style="margin:8px 0 0"><b>'+esc(s.apartments.name)+'</b></p>':'')+'<p style="margin:6px 0 0">'+esc(s.text||'(solo foto)')+'</p><p class="note" style="margin:4px 0 0">'+(s.status==='chiusa'?(s.chiusa_da_cliente?'<b style="color:var(--ok)">'+em('fatto')+' Fatto da '+esc(clSigla())+'</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():''):'<b style="color:var(--ok)">'+em('fatto')+' Fatto da FM Coop</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():'')):s.status==='presa'?'Presa in carico da FM':'Aperta')+'</p>'+(s.chiusa_da_cliente&&s.chiusa_nota?'<p class="note" style="margin:2px 0 0">Nota: '+esc(s.chiusa_nota)+'</p>':'')+(s.status!=='chiusa'?'<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="mini" data-csist="'+s.id+'">'+em('fatto')+' Fatto da '+esc(clSigla())+'</button>'+(s.fm_chiesto_at?'':'<button class="mini" data-cfm="'+s.id+'">🔧 Fate voi FM</button>')+'</div>':'')+clFotoSeg(s)+fmInfo(s,true)+pvBox(s,true)+lavFatto(s)+'</div>';}
