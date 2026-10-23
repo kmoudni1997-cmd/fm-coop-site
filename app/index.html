@@ -1220,6 +1220,35 @@ function vCru(B){var K=B.cru=B.cru||{};K.m=K.m||meseDi(todayStr());
  var A=R.avvisi,av=[];if(A.nonChiusi)av.push(A.nonChiusi+' pulizie passate non chiuse nell’app (non sono nei ricavi: chiudile in «Da sistemare»)');if(A.daPrezzare)av.push(A.daPrezzare+' extra da prezzare');if(A.senzaPrezzo)av.push(A.senzaPrezzo+' passaggi senza prezzo dell’appartamento');
  if(av.length)h+='<div class="card" style="border-left:4px solid var(--warn)"><h2>Da controllare</h2>'+av.map(function(t){return '<p class="note" style="margin:4px 0">• '+t+'</p>'}).join('')+'</div>';
  return h;}
+// 23/10: pagina dell'appartamento per responsabili e admin
+async function caricaAptB(id){var B=S.boss;B.aptDati=null;render();
+ try{var r=await sb.from('program').select('id,day,note,guests,user_id,giorno_cliente,nascosto_cliente,segnalazione_id,start_time').eq('apt_id',id).eq('kind','lavoro').gte('day',addDays(todayStr(),-120)).lte('day',addDays(todayStr(),45)).order('day',{ascending:false}).limit(200);
+  var P=r.data||[],ids=P.map(function(x){return x.id});
+  var ps=ids.length?await sb.from('passaggi').select('id,program_id,user_id,started_at,closed_at,fermato_at,over_by_min,non_pagato').in('program_id',ids):{data:[]};var pm={};(ps.data||[]).forEach(function(q){(pm[q.program_id]=pm[q.program_id]||[]).push(q)});
+  B.aptDati={id:id,righe:P.map(function(x){return Object.assign({},x,{pas:pm[x.id]||[]})})};}catch(e){B.aptDati={id:id,righe:[],err:true};logErr('pagina-apt-boss',e);}render();}
+function vAptB(B){var a=(B.apts||[]).filter(function(x){return x.id===B.aptPage})[0]||{},D=B.aptDati,oggi=todayStr();
+ var nome=function(uid){var o=(B.ops||[]).filter(function(x){return x.id===uid})[0];return o?o.name:''};
+ var top='<div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><h1 style="margin:0">'+esc(a.name||'')+'</h1><span class="row" style="gap:6px"><button class="mini" data-editapt="'+a.id+'">✏️ Modifica scheda</button><button class="mini" data-baptx="1">← Appartamenti</button></span></div>'+covBig(a.id)+
+  '<p class="note" style="margin:6px 0 10px">'+esc(a.address||'')+(a.client?' · '+esc(a.client):'')+(a.guests?' · '+a.guests+' ospiti':'')+' · tempo massimo '+fmt(a.max_min||90)+(a.address?' · <a href="'+navUrl(a)+'" target="_blank" rel="noopener">Portami lì</a>':'')+'</p>';
+ if(!D||D.id!==a.id)return top+'<div class="card"><span class="spin"></span> carico…</div>';
+ var chiuso=function(x){return x.pas.some(function(q){return q.closed_at})};
+ var pul=D.righe.filter(function(x){return !x.segnalazione_id}),man=D.righe.filter(function(x){return x.segnalazione_id});
+ var fatte=pul.filter(chiuso),prossime=pul.filter(function(x){return x.day>=oggi&&!chiuso(x)}).sort(function(p,q){return p.day<q.day?-1:1});
+ var ult=fatte[0],sg=(B.segn||[]).filter(function(s){return s.apt_id===a.id&&s.status!=='chiusa'});
+ var dur=[];fatte.forEach(function(x){x.pas.forEach(function(q){if(q.closed_at&&q.started_at)dur.push(durMin(q))})});var d10=dur.slice(0,10),media=d10.length?d10.reduce(function(t,v){return t+v},0)/d10.length:null;
+ var gg=function(d){return pdate(d).fmD({weekday:'short',day:'numeric',month:'short'})};
+ var chi=function(x){var L=x.pas.length?x.pas.map(function(q){return q.user_id}):(x.user_id?[x.user_id]:[]);L=L.filter(function(v,i){return v&&L.indexOf(v)===i});return L.length?L.map(function(u){return avatar(nome(u))+' '+esc(nome1(nome(u)))}).join(' '):'<span class="pill warn">da assegnare</span>'};
+ var box=function(ic,tit,val,sub){return '<div class="acb">'+mIco(ic,'sghi')+'<div><small>'+tit+'</small><b>'+val+'</b>'+(sub?'<span class="note">'+sub+'</span>':'')+'</div></div>'};
+ var h=top+'<div class="acbs cru4">'+box('fatto','Ultima pulizia',ult?gg(ult.day):'—',ult?esc(ult.pas.map(function(q){return nome1(nome(q.user_id))}).filter(Boolean).join(' e ')):'')+
+  box('calendario','Prossima',prossime[0]?gg(prossime[0].day):'nessuna',prossime[0]?(prossime[0].user_id?esc(nome1(nome(prossime[0].user_id))):'da assegnare')+(prossime.length>1?' · e altre '+(prossime.length-1):''):'')+
+  box('segnalazione','Segnalazioni aperte',String(sg.length),man.filter(function(x){return x.day>=oggi&&!chiuso(x)}).length?'manutenzioni in programma':'')+
+  box('cronometro','Tempo medio',media!=null?fmt(media):'—',media!=null?'ultime '+d10.length+' pulizie · massimo '+fmt(a.max_min||90):'')+'</div>';
+ if(prossime.length)h+='<div class="card"><h2 style="margin-bottom:6px">In programma</h2>'+prossime.slice(0,12).map(function(x){return '<div class="acr"><span class="gg">'+gg(x.day)+'</span><span style="flex:1">'+chi(x)+(x.nascosto_cliente?' <span class="pill grey">nascosto al cliente</span>':'')+'<br><span class="note">'+esc([x.start_time?String(x.start_time).slice(0,5):'',x.guests?x.guests+' ospiti':'',x.note||''].filter(Boolean).join(' · '))+'</span></span></div>'}).join('')+'</div>';
+ if(sg.length)h+='<div class="card"><h2 style="margin-bottom:6px">Segnalazioni aperte</h2>'+sg.map(function(s){return '<div class="acr"><span class="gg">'+new Date(s.created_at).fmD({day:'numeric',month:'short'})+'</span><span style="flex:1">'+esc(s.text||s.type)+'</span><button class="mini" data-bapsegn="'+s.id+'">Apri</button></div>'}).join('')+'</div>';
+ var storico=D.righe.filter(chiuso).slice(0,40);
+ h+='<div class="card"><h2 style="margin-bottom:6px">Storico</h2>'+(storico.length?storico.map(function(x){var q=x.pas.filter(function(z){return z.closed_at})[0]||{},dm=q.started_at?durMin(q):null,ov=q.over_by_min>0;
+   return '<button class="acr acbtn" data-baptdet="'+x.id+'" data-baptday="'+x.day+'"><span class="gg">'+gg(x.day)+'</span><span style="flex:1;min-width:0">'+(x.segnalazione_id?'<b>🔧 Manutenzione</b> ':'')+chi(x)+(x.giorno_cliente?' <span class="pill grey">al cliente il '+pdate(x.giorno_cliente).fmD({day:'numeric',month:'short'})+'</span>':'')+(q.non_pagato?' <span class="pill grey">non pagato</span>':'')+'<br><span class="note">'+esc([x.guests?x.guests+' ospiti':'',x.note||''].filter(Boolean).join(' · '))+'</span></span><span class="pill '+(ov?'bad':'ok')+'">'+(dm!=null?fmt(dm):'fatto')+'</span><span class="sgar">›</span></button>'}).join(''):'<p class="note">Nessuna pulizia chiusa negli ultimi 4 mesi.</p>')+'</div>';
+ return h;}
 function vAcq(B){var A=B.acq=B.acq||{};A.m=A.m||meseDi(todayStr());A.f=A.f||'tutti';var F=B.af||{},g=function(k,d){return F[k]!=null?F[k]:(d||'')};
  var resp=(B.ops||[]).filter(function(o){return o.active&&(o.role==='boss'||o.role==='admin')&&o.username!=='nexus'}).sort(function(a,b){return a.name<b.name?-1:1});
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.active&&a.client&&clienti.indexOf(a.client)<0&&!isServ(a))clienti.push(a.client)});clienti.sort();
@@ -1918,7 +1947,8 @@ function vBoss(){
   if(tab==='bia'){title='Biancheria';body=vBia(B);}
  if(tab==='gest'){title='Gestione';body=isAdmin()?vGest(B):'<div class="card">Solo per l’amministrazione.</div>';}
  if(tab==='apts'){title='Appartamenti';
-  if(B.editApt!==null){var a=B.editApt||{kit:[],linen:{},active:true};var lin=a.linen||{};
+  if(B.aptPage&&B.editApt===null){title=((B.apts||[]).filter(function(x){return x.id===B.aptPage})[0]||{}).name||'Appartamento';body=vAptB(B);}
+  else if(B.editApt!==null){var a=B.editApt||{kit:[],linen:{},active:true};var lin=a.linen||{};
    var f=function(id,lab,val,type,w){return '<label class="f '+(w?'w':'')+'">'+lab+'<input type="'+(type||'text')+'" id="'+id+'" value="'+esc(val==null?'':val)+'"></label>';};
    body='<div class="row" style="justify-content:space-between"><h1>'+(a.id?esc(a.name):'Nuovo appartamento')+'</h1><button class="mini" data-editapt="close">Annulla</button></div><div class="two"><div><div class="card form">'+
    f('a_name','Nome',a.name)+'<input type="hidden" id="a_code" value="'+esc(a.code||'')+'">'+f('a_client','Cliente',a.client)+'<label class="f w">Codici di accesso (lucchetto, tastierino, chiavi) — se cambi un numero qui cambia da solo anche nella descrizione, e viceversa<textarea id="a_access" rows="2">'+esc(a.access||'')+'</textarea></label>'+f('a_address','Indirizzo completo',a.address,'text',true)+f('a_floor','Piano',a.floor)+'<label class="f">Ascensore<select id="a_elevator"><option value="">?</option><option value="1" '+(a.elevator===true?'selected':'')+'>Sì</option><option value="0" '+(a.elevator===false?'selected':'')+'>No</option></select></label>'+f('a_size','Tipo (bilocale…)',a.size)+f('a_m2','Metri quadri',a.size_m2,'number')+f('a_beds','Posti letto (es. 1 matr + 2 sing)',a.beds)+f('a_guests','Ospiti standard',a.guests,'number')+f('a_max','Tempo max (min)',a.max_min,'number')+
@@ -1933,7 +1963,7 @@ function vBoss(){
    var q=(B.aq||'').toLowerCase(),zf=B.azone||'';var zs=[];B.apts.forEach(function(a){if(a.zone&&zs.indexOf(a.zone)<0)zs.push(a.zone)});zs.sort();
    var vis=B.apts.filter(function(a){return (!zf||a.zone===zf)&&(!q||(a.name+' '+(a.address||'')+' '+(a.client||'')+' '+(a.code||'')).toLowerCase().indexOf(q)>=0)});
    var groups={};vis.forEach(function(a){(groups[a.zone||'Altro']=groups[a.zone||'Altro']||[]).push(a)});var gk=Object.keys(groups).sort();
-   var aptRow=function(a){var upd=a.access_updated_at?new Date(a.access_updated_at):null;var old=!upd||((Date.now()-upd)/86400000>90);return '<button class="apt" data-editapt="'+a.id+'">'+covThumb(a.id)+'<span style="flex:1;min-width:0"><span class="n">'+esc(a.name)+(a.active?'':' <span class="pill grey">non attivo</span>')+'</span><br><span class="s">'+esc(a.address||'')+(a.client?' · '+esc(a.client):'')+' · '+(a.guests||'?')+' osp. · '+fmt(a.max_min||90)+'</span></span><span class="t">'+(old?'<span class="pill warn">codici ?</span>':'<span class="pill ok">ok</span>')+'</span></button>';};
+   var aptRow=function(a){var upd=a.access_updated_at?new Date(a.access_updated_at):null;var old=!upd||((Date.now()-upd)/86400000>90);return '<button class="apt" data-bapt="'+a.id+'">'+covThumb(a.id)+'<span style="flex:1;min-width:0"><span class="n">'+esc(a.name)+(a.active?'':' <span class="pill grey">non attivo</span>')+'</span><br><span class="s">'+esc(a.address||'')+(a.client?' · '+esc(a.client):'')+' · '+(a.guests||'?')+' osp. · '+fmt(a.max_min||90)+'</span></span><span class="t">'+(old?'<span class="pill warn">codici ?</span>':'<span class="pill ok">ok</span>')+'</span></button>';};
    body='<div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h1 style="margin:0">Appartamenti <span class="note">'+vis.length+'/'+B.apts.length+'</span></h1><span class="row" style="gap:8px"><input type="search" id="aq" placeholder="Cerca nome, via, cliente" value="'+esc(B.aq||'')+'" style="width:220px;padding:8px 10px;font-size:14px"><select id="azone" style="width:auto;padding:8px"><option value="">Tutte le zone</option>'+zs.map(function(z){return '<option '+(z===zf?'selected':'')+'>'+esc(z)+'</option>'}).join('')+'</select><button class="mini" data-editapt="new">+ Nuovo</button></span></div>'+
     (gk.length?gk.map(function(z){var open=q||zf||B.aopen===z||gk.length===1;return '<div class="card" style="padding:0;overflow:hidden"><button class="grp '+(open?'on':'')+'" data-aopen="'+esc(z)+'"><b>'+esc(z)+'</b><span class="note">'+groups[z].length+' appartament'+(groups[z].length===1?'o':'i')+'</span><span class="ic">'+(open?'▾':'▸')+'</span></button>'+(open?'<div class="two" style="padding:0 12px 8px">'+groups[z].map(aptRow).join('')+'</div>':'')+'</div>'}).join(''):'<div class="card note">Nessun appartamento trovato.</div>');}
  }
@@ -2042,6 +2072,10 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.bapt){S.boss.aptPage=Number(d.bapt);S.boss.editApt=null;window.scrollTo(0,0);caricaAptB(S.boss.aptPage);return;}
+ if(d.baptx){S.boss.aptPage=null;S.boss.aptDati=null;render();return;}
+ if(d.baptdet){S.boss.tab='oggi';S.view='boss';S.boss.date=d.baptday;S.boss.viewPass=null;await loadBoss();S.boss.viewPass=Number(d.baptdet);render();window.scrollTo(0,0);return;}
+ if(d.bapsegn){S.boss.tab='segn';S._apriSegn=d.bapsegn;render();apriSegnPend();return;}
  if(d.crum){var KK=S.boss.cru=S.boss.cru||{};var m0=KK.m||meseDi(todayStr());var dk=new Date(Number(m0.slice(0,4)),Number(m0.slice(5,7))-1+Number(d.crum),1);KK.m=dk.getFullYear()+'-'+pad2(dk.getMonth()+1);KK.ok=null;render();return;}
  if(d.crurl){var K2=S.boss.cru||{};K2.ok=null;S.boss.conti=null;render();return;}
  if(d.crap){S.cl.tab='rapp';S.cl.det=null;S.cl.aptPage=null;window.scrollTo(0,0);caricaRap(d.crap);return;}
