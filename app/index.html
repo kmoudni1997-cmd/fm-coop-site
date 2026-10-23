@@ -719,16 +719,16 @@ function dsCard(B){var D=B.ds;if(!(isAdmin()||segr())||!D||!D.rows.length)return
      '<div class="row" style="gap:8px"><button class="btn ghost" data-dsann="1" style="flex:1">Annulla</button><button class="btn acc" data-dssave="'+pr.id+'" style="flex:2" '+(S.busy?'disabled':'')+'>Sposta</button></div></div>';}
    return h+'</div>';}).join('')+'</div>';}
 async function dsSalva(id){var B=S.boss,pr=B.ds.rows.filter(function(x){return x.id===id})[0];if(!pr)return;var pa=B.ds.pass[id],m=B.dsSel.m,a=pr.apartments||{},chi=(S.profile&&S.profile.name)||'un amministratore';
- if(m==='fatta'){var sc=document.getElementById('ds_chi'),uid=(sc&&sc.value)||pr.user_id;if(!uid){toast('Scegli chi l’ha fatta');return false;}if(uid!==pr.user_id){var u1=await sb.from('program').update({user_id:uid}).eq('id',id);if(u1.error)throw u1.error;}
-  var fine=document.getElementById('ds_fine').value,ini=pa?null:document.getElementById('ds_ini').value;if(!fine||(!pa&&!ini)){toast('Metti gli orari');return false;}
+ if(m==='fatta'){var V=S.boss.dsVal||{},uid=V.ds_chi||pr.user_id;if(!uid){toast('Scegli chi l’ha fatta');return false;}if(uid!==pr.user_id){var u1=await sb.from('program').update({user_id:uid}).eq('id',id);if(u1.error)throw u1.error;}
+  var fine=V.ds_fine,ini=pa?null:V.ds_ini;if(!fine||(!pa&&!ini)){toast('Metti gli orari');return false;}
   var fIso=new Date(pr.day+'T'+fine+':00').toISOString();
   if(pa){if(new Date(fIso)<=new Date(pa.started_at)){toast('La fine è prima dell’inizio');return false;}var u2=await sb.from('passaggi').update({user_id:uid,closed_at:fIso,a_posteriori:true,note:'Chiusa da '+chi+' nella chiusura della giornata'}).eq('id',pa.id);if(u2.error)throw u2.error;}
   else{var iIso=new Date(pr.day+'T'+ini+':00').toISOString();if(new Date(fIso)<=new Date(iIso)){toast('La fine è prima dell’inizio');return false;}
    var ins=await sb.from('passaggi').insert({program_id:id,apt_id:pr.apt_id,user_id:uid,day:pr.day,started_at:iIso,closed_at:fIso,a_posteriori:true,note:'Segnata come fatta da '+chi+' nella chiusura della giornata (senza foto)'});if(ins.error)throw ins.error;}
   toast('Segnata come fatta');}
- else if(m==='non'){var vu=document.getElementById('ds_vuoto');if(vu&&vu.checked){var ex=await sb.from('extra_clienti').insert({day:pr.day,client:a.client||'Senza cliente',apt_id:pr.apt_id,descrizione:'Passaggio a vuoto (appartamento non da fare)',importo:12,fonte:'chiusura giornata · '+((S.profile&&S.profile.username)||'')});if(ex.error)throw ex.error;}
+ else if(m==='non'){var vu={checked:!!(S.boss.dsVal||{}).ds_vuoto};if(vu.checked){var ex=await sb.from('extra_clienti').insert({day:pr.day,client:a.client||'Senza cliente',apt_id:pr.apt_id,descrizione:'Passaggio a vuoto (appartamento non da fare)',importo:12,fonte:'chiusura giornata · '+((S.profile&&S.profile.username)||'')});if(ex.error)throw ex.error;}
   var de=await sb.from('program').delete().eq('id',id);if(de.error)throw de.error;toast(vu&&vu.checked?'Tolta dal programma, 12 € di passaggio a vuoto':'Tolta dal programma');}
- else{var nd=document.getElementById('ds_day').value;if(!nd){toast('Scegli il giorno');return false;}var up=await sb.from('program').update({day:nd}).eq('id',id);if(up.error)throw up.error;toast('Spostata al '+pdate(nd).fmD({day:'numeric',month:'long'}));}
+ else{var nd=(S.boss.dsVal||{}).ds_day;if(!nd){toast('Scegli il giorno');return false;}var up=await sb.from('program').update({day:nd}).eq('id',id);if(up.error)throw up.error;toast('Spostata al '+pdate(nd).fmD({day:'numeric',month:'long'}));}
  return true;}
 async function loadBoss(){caricaCopertine().then(function(c){if(c)render()});
  var d=S.boss.date,adm=isAdmin(),nulla=Promise.resolve({data:null});
@@ -1957,7 +1957,7 @@ app.addEventListener('click',async function(e){
  if(d.servdone){var prv=S.boss.program.filter(function(x){return String(x.id)===d.servdone})[0];if(!prv)return;S.busy=true;render();var adesso=new Date().toISOString();var rs=await sb.from('passaggi').insert({program_id:prv.id,apt_id:prv.apt_id,user_id:prv.user_id||S.user.id,day:prv.day,started_at:adesso,closed_at:adesso,note:'Segnato come fatto da '+((S.profile&&S.profile.name)||'un responsabile')+(prv.user_id&&prv.user_id!==S.user.id?' (le ore vanno messe a mano)':'')});S.busy=false;if(rs.error)throw rs.error;await loadBoss();render();toast('Segnato come fatto');return;}
  if(d.dsact){S.boss.dsSel={id:Number(d.dsact),m:d.m};render();return;}
  if(d.dsann){S.boss.dsSel=null;render();return;}
- if(d.dssave){if(S.busy)return;S.busy=true;render();try{var okd=await dsSalva(Number(d.dssave));if(okd!==false){S.boss.dsSel=null;await loadDaSistemare();}}finally{S.busy=false;}render();return;}
+ if(d.dssave){if(S.busy)return;S.boss.dsVal={};['ds_chi','ds_ini','ds_fine','ds_day'].forEach(function(k){var e=document.getElementById(k);if(e)S.boss.dsVal[k]=e.value});var vuE=document.getElementById('ds_vuoto');S.boss.dsVal.ds_vuoto=!!(vuE&&vuE.checked);S.busy=true;render();try{var okd=await dsSalva(Number(d.dssave));if(okd!==false){S.boss.dsSel=null;await loadDaSistemare();}}finally{S.busy=false;}render();return;}
  if(d.bclose){var bp=S.boss.passaggi.filter(function(x){return String(x.id)===d.bclose})[0];if(!bp||bp.closed_at)return;var bpr=S.boss.program.filter(function(x){return x.id===bp.program_id})[0];
   if(!confirm('Chiudere il passaggio di '+(bpr&&bpr.apartments?bpr.apartments.name:'')+' con le foto che ci sono?'))return;
   S.busy=true;render();var bover=bp.fermato_at?MARGINE_STOP:Math.max(0,Math.round(elapsedMin(bp)-maxOf(bpr,bp)));
