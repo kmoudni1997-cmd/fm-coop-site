@@ -5,9 +5,11 @@ self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (e) { e.waitUntil(self.clients.claim()); });
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
+  // 23/10: la notifica di una segnalazione (tag «sg<id>-…») apre proprio quella segnalazione
+  var m = /^sg(\d+)-/.exec(e.notification.tag || ''), dove = m ? '#segn-' + m[1] : '';
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (L) {
-    for (var i = 0; i < L.length; i++) { if (L[i].url.indexOf('/app/') >= 0 && 'focus' in L[i]) return L[i].focus(); }
-    return self.clients.openWindow('/app/');
+    for (var i = 0; i < L.length; i++) { if (L[i].url.indexOf('/app/') >= 0 && 'focus' in L[i]) { if (dove) L[i].postMessage({ fmApri: dove }); return L[i].focus(); } }
+    return self.clients.openWindow('/app/' + dove);
   }));
 });
 // pronto per le notifiche push vere (a app chiusa), se un giorno le attiviamo
