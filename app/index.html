@@ -1160,7 +1160,7 @@ function vRapp(C){var R=C.rap||{},lun=R.lun||rapLunScorso(),D=R.dati;
  if(!D)return h+(R.err?'<div class="card">Rapporto non disponibile: '+esc(R.err)+'</div>':'<div class="card"><span class="spin"></span> carico…</div>');
  var box=function(ic,tit,val,sub){return '<div class="acb">'+mIco(ic,'sghi')+'<div><small>'+tit+'</small><b>'+val+'</b>'+(sub?'<span class="note">'+sub+'</span>':'')+'</div></div>'};
  var na=(D.apts||[]).length;
- h+='<div class="acbs">'+box('pulizia','Pulizie fatte',String(D.pulizie),na?(na===1?'in 1 appartamento':'in '+na+' appartamenti'):'')+box('fondo','Pulizia di fondo',String(D.fondo),D.fondo===1?'lavoro in più':'lavori in più')+
+ h+='<div class="acbs">'+box('pulizia','Pulizie fatte',String(D.pulizie),na?(na===1?'in 1 appartamento':'in '+na+' appartamenti'):'')+(D.fondo>0?box('fondo','Pulizia di fondo',String(D.fondo),D.fondo===1?'lavoro in più':'lavori in più'):box('fatto','Segnalazioni sistemate',String(D.segn_fm+D.segn_cliente),D.segn_fm?D.segn_fm+' da FM Coop':''))+
   box('manutenzione','Manutenzioni fatte',String(D.man_fatte),'')+box('segnalazione','Segnalazioni nuove',String(D.segn_nuove),'')+'</div>';
  if(na)h+='<div class="card"><h2 style="margin-bottom:6px">Pulizie per appartamento</h2>'+D.apts.map(function(a){return '<div class="acr"><span style="flex:1;white-space:normal">'+esc(a.name)+'<br><span class="note">'+(a.giorni||[]).map(function(g){return pdate(g).fmD({weekday:'short',day:'numeric'})}).join(' · ')+'</span></span><span class="pill ok">×'+a.n+'</span></div>'}).join('')+'</div>';
  else h+=vuoto('calendario','Nessuna pulizia chiusa in questa settimana.');
