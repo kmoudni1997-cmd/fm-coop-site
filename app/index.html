@@ -502,6 +502,14 @@ button.rpi{border:0;background:transparent;font:inherit;color:inherit;cursor:poi
 .spi{display:flex;gap:10px;align-items:flex-start;padding:10px 4px;border-top:1px solid var(--line);cursor:pointer}
 .spi:first-child{border-top:0}.spi input{width:22px;height:22px;flex:none;margin-top:2px}
 .spacq{margin-top:10px;background:var(--tap);border-radius:12px;padding:10px 12px}.spacq summary{cursor:pointer}
+
+/* 23/10 pagina dell'appartamento del cliente */
+.acbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.acb{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.acb small{display:block;color:var(--mute);font-size:11px;font-weight:700}.acb b{display:block;font-size:15px}.acb b::first-letter{text-transform:uppercase}.acb .note{font-size:11px}
+.acr{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);width:100%}.acr>span:first-child{text-transform:capitalize;white-space:nowrap}
+.acr:first-of-type{border-top:0}
+button.acbtn{background:transparent;border:0;border-top:1px solid var(--line);font:inherit;color:inherit;text-align:left;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1108,6 +1116,25 @@ function vSpesa(B){var gr=spGruppi(B),S1=spSel(B),nSel=spScelte(B).length;
 function spBoxAcq(B){var L=spScelte(B),gr=spGruppi(B);if(!gr.length)return '';var S1=spSel(B);
  return '<details class="spacq"'+(L.length?' open':'')+'><summary><b>Dalla lista della spesa</b> <span class="pill '+(L.length?'ok':'grey')+'">'+L.length+' scelte</span></summary><p class="note" style="margin:6px 0">Spunta le cose che hai comprato con questo scontrino: al salvataggio escono dalla lista della spesa.</p>'+
   gr.map(function(g){var tutte=g.righe.every(function(m){return S1[m.id]});return '<label class="spi"><input type="checkbox" data-spg="'+esc(g.righe.map(function(m){return m.id}).join(','))+'" '+(tutte?'checked':'')+'><span style="flex:1">'+esc(g.item)+'</span><span class="pill warn">×'+g.righe.length+'</span></label>'}).join('')+'</details>';}
+// 23/10: pagina dell'appartamento per il cliente
+async function caricaAptCl(id){var C=S.cl;C.aptDati=null;render();
+ try{var r=await sb.from('program').select('id,day,note,guests,giorno_cliente,nascosto_cliente,segnalazione_id').eq('apt_id',id).eq('kind','lavoro').gte('day',addDays(todayStr(),-120)).lte('day',addDays(todayStr(),45)).order('day',{ascending:false}).limit(150);
+  var P=(r.data||[]).filter(function(x){return !x.segnalazione_id&&(!x.nascosto_cliente||x.giorno_cliente)});var ids=P.map(function(x){return x.id});
+  var ps=ids.length?await sb.from('passaggi').select('program_id,started_at,closed_at').in('program_id',ids):{data:[]};var pm={};(ps.data||[]).forEach(function(q){pm[q.program_id]=q});
+  P=P.filter(function(x){return !x.giorno_cliente||(pm[x.id]&&pm[x.id].closed_at)}).map(function(x){return Object.assign({},x,{dayCl:x.giorno_cliente||x.day,pas:pm[x.id]||null})});
+  C.aptDati={id:id,righe:P};}catch(e){C.aptDati={id:id,righe:[],err:true};}render();}
+function vAptCl(C){var a=(C.apts||[]).filter(function(x){return x.id===C.aptPage})[0]||{},D=C.aptDati,oggi=todayStr();
+ var top='<div class="row" style="justify-content:space-between"><h1 style="margin:0">'+esc(a.name||'')+'</h1><button class="mini" data-captx="1">← Schede</button></div>'+covBig(a.id)+'<p class="note" style="margin:6px 0 10px">'+esc(a.address||'')+(a.floor?' · piano '+esc(a.floor):'')+'</p>';
+ if(!D||D.id!==a.id)return top+'<div class="card"><span class="spin"></span> carico…</div>';
+ var fatte=D.righe.filter(function(x){return x.pas&&x.pas.closed_at}),prossime=D.righe.filter(function(x){return x.day>=oggi&&!(x.pas&&x.pas.closed_at)}).sort(function(p,q){return p.day<q.day?-1:1});
+ var ult=fatte[0],sg=(C.segn||[]).filter(function(s){return s.apt_id===a.id&&s.status!=='chiusa'});
+ var gg=function(d){return pdate(d).fmD({weekday:'short',day:'numeric',month:'short'})};
+ var box=function(ic,tit,val,sub){return '<div class="acb">'+mIco(ic,'sghi')+'<div><small>'+tit+'</small><b>'+val+'</b>'+(sub?'<span class="note">'+sub+'</span>':'')+'</div></div>'};
+ var h=top+'<div class="acbs">'+box('fatto','Ultima pulizia',ult?gg(ult.dayCl):'—',ult?'fatta':'')+box('calendario','Prossima',prossime[0]?gg(prossime[0].day):'nessuna in programma',prossime.length>1?'e altre '+(prossime.length-1):'')+box('segnalazione','Segnalazioni aperte',String(sg.length),'')+box('pulizia','Pulizie negli ultimi 30 giorni',String(fatte.filter(function(x){return x.dayCl>=addDays(oggi,-30)}).length),'')+'</div>';
+ if(prossime.length)h+='<div class="card"><h2 style="margin-bottom:6px">In programma</h2>'+prossime.slice(0,10).map(function(x){return '<div class="acr"><span>'+gg(x.day)+'</span><span class="note">'+esc(x.note||(x.guests?x.guests+' ospiti':''))+'</span><span class="pill grey">Da fare</span></div>'}).join('')+'</div>';
+ if(sg.length)h+='<div class="card"><h2 style="margin-bottom:6px">Segnalazioni aperte</h2>'+sg.map(function(s){return '<div class="acr"><span>'+new Date(s.created_at).fmD({day:'numeric',month:'short'})+'</span><span style="flex:1">'+esc(s.text||s.type)+'</span><button class="mini" data-capsegn="'+s.id+'">Apri</button></div>'}).join('')+'</div>';
+ h+='<div class="card"><h2 style="margin-bottom:6px">Storico delle pulizie</h2>'+(fatte.length?fatte.slice(0,30).map(function(x){return '<button class="acr acbtn" data-capdet="'+x.id+'" data-capday="'+x.dayCl+'"><span>'+gg(x.dayCl)+'</span><span class="note" style="flex:1">'+esc(x.guests?x.guests+' ospiti':'')+'</span><span class="pill ok">Fatto</span><span class="sgar">›</span></button>'}).join(''):'<p class="note">Nessuna pulizia negli ultimi 4 mesi.</p>')+'</div>';
+ return h;}
 function vAcq(B){var A=B.acq=B.acq||{};A.m=A.m||meseDi(todayStr());A.f=A.f||'tutti';var F=B.af||{},g=function(k,d){return F[k]!=null?F[k]:(d||'')};
  var resp=(B.ops||[]).filter(function(o){return o.active&&(o.role==='boss'||o.role==='admin')&&o.username!=='nexus'}).sort(function(a,b){return a.name<b.name?-1:1});
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.active&&a.client&&clienti.indexOf(a.client)<0&&!isServ(a))clienti.push(a.client)});clienti.sort();
@@ -1165,10 +1192,11 @@ function clCardSegn(s,conApp){return '<div class="card" id="sg-'+s.id+'"><div cl
 var CL_NAV=[['oggi','🏠','Appartamenti'],['rich','📝','Richieste'],['segn','📸','Segnalazioni'],['acq','🧾','Acquisti'],['bia','🛏','Biancheria'],['codici','🏠','Schede'],['conto','💶','Conto']];
 function vClient(){var C=S.cl,body='',title='';if(!clEcon()&&C.tab==='conto')C.tab='oggi';var pvN=(C.segn||[]).filter(function(s){return s.prev_stato==='proposto'});
  if(C.tab==='conto'){title='Conto';body=vConto(C);}
+ else if(C.tab==='codici'&&C.aptPage){title='Appartamento';body=vAptCl(C);}
  else if(C.tab==='codici'){title='Schede e codici';if(!clApts(C)){body='<div class="card"><span class="spin"></span> carico…</div>';}
   else{var q=(C.cq||'').toLowerCase();var L=C.apts.filter(function(a){return !q||a.name.toLowerCase().indexOf(q)>=0||(a.address||'').toLowerCase().indexOf(q)>=0});
    body='<h1>Schede e codici</h1><p class="note" style="margin:0 0 8px">Tutti i vostri appartamenti con la scheda completa (come arrivare, come entrare, foto dell’accesso): potete darla anche ai vostri manutentori. Quando cambiate un codice scrivetelo qui: si aggiorna subito nella scheda che usano le nostre operatrici.</p><input type="text" id="cq" placeholder="Cerca appartamento…" autocomplete="off" value="'+esc(C.cq||'')+'" style="margin-bottom:10px">'+
-   L.map(function(a){return '<div class="card">'+((C.cover||{})[a.id]?'<div class="scov" style="background-image:url('+C.cover[a.id]+')"></div>':'')+'<div class="row" style="justify-content:space-between;gap:8px"><b>'+esc(a.name)+'</b><span class="note">'+(a.access_updated_at?'aggiornato il '+new Date(a.access_updated_at).fmD():'')+'</span></div><p class="note" style="margin:2px 0 8px">'+esc(a.address||'')+'</p>'+(C.edit===a.id?'<textarea id="cc_'+a.id+'" rows="3">'+esc(a.access||'')+'</textarea><div class="row" style="gap:8px;margin-top:8px"><button class="btn ghost" data-ccancel="1" style="flex:1">Annulla</button><button class="btn acc" data-csave="'+a.id+'" style="flex:2" '+(S.busy?'disabled':'')+'>Salva il codice</button></div>':'<p style="margin:0">'+esc(a.access||'—')+'</p><div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="mini" data-cedit="'+a.id+'">Cambia codice</button><button class="mini" data-cscheda="'+a.id+'">'+(C.scheda===a.id?'Chiudi la scheda ▴':'📋 Vedi la scheda completa ▾')+'</button></div>')+(C.scheda===a.id?'<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">'+(a.floor?'<p style="margin:0 0 6px"><b>Piano:</b> '+esc(a.floor)+'</p>':'')+(a.description?'<div style="white-space:pre-line;margin-bottom:8px">'+linkify(esc(a.description))+'</div>':'<p class="note">Nessuna descrizione.</p>')+(a.address?'<a class="btn ghost sm" style="display:inline-block;text-decoration:none;margin-bottom:8px" href="'+esc(mapsUrl(a))+'" target="_blank" rel="noopener">📍 Apri in Google Maps</a>':'')+galleriaApt(a.id)+'</div>':'')+'</div>'}).join('');}}
+   L.map(function(a){return '<div class="card">'+((C.cover||{})[a.id]?'<div class="scov" style="background-image:url('+C.cover[a.id]+')"></div>':'')+'<div class="row" style="justify-content:space-between;gap:8px"><b>'+esc(a.name)+'</b><span class="note">'+(a.access_updated_at?'aggiornato il '+new Date(a.access_updated_at).fmD():'')+'</span></div><p class="note" style="margin:2px 0 8px">'+esc(a.address||'')+'</p>'+(C.edit===a.id?'<textarea id="cc_'+a.id+'" rows="3">'+esc(a.access||'')+'</textarea><div class="row" style="gap:8px;margin-top:8px"><button class="btn ghost" data-ccancel="1" style="flex:1">Annulla</button><button class="btn acc" data-csave="'+a.id+'" style="flex:2" '+(S.busy?'disabled':'')+'>Salva il codice</button></div>':'<p style="margin:0">'+esc(a.access||'—')+'</p><div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="mini" data-cedit="'+a.id+'">Cambia codice</button><button class="mini acc" data-capt="'+a.id+'">'+mIco('calendario','mi')+' Storico e prossime pulizie</button><button class="mini" data-cscheda="'+a.id+'">'+(C.scheda===a.id?'Chiudi la scheda ▴':'📋 Vedi la scheda completa ▾')+'</button></div>')+(C.scheda===a.id?'<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">'+(a.floor?'<p style="margin:0 0 6px"><b>Piano:</b> '+esc(a.floor)+'</p>':'')+(a.description?'<div style="white-space:pre-line;margin-bottom:8px">'+linkify(esc(a.description))+'</div>':'<p class="note">Nessuna descrizione.</p>')+(a.address?'<a class="btn ghost sm" style="display:inline-block;text-decoration:none;margin-bottom:8px" href="'+esc(mapsUrl(a))+'" target="_blank" rel="noopener">📍 Apri in Google Maps</a>':'')+galleriaApt(a.id)+'</div>':'')+'</div>'}).join('');}}
  else if(C.tab==='rich'){title='Richieste';body=vRich(C);}
  else if(C.tab==='acq'){title='Acquisti';body=vAcqCl(C);}
   else if(C.tab==='bia'){title='Biancheria';body=vBiaCl(C);}
@@ -1925,6 +1953,10 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.capt){S.cl.aptPage=Number(d.capt);window.scrollTo(0,0);caricaAptCl(S.cl.aptPage);return;}
+ if(d.captx){S.cl.aptPage=null;S.cl.aptDati=null;render();return;}
+ if(d.capdet){S.cl.aptPage=null;S.cl.tab='oggi';S.cl.date=d.capday;S.cl.det=null;await loadClient();S.cl.det=Number(d.capdet);render();window.scrollTo(0,0);return;}
+ if(d.capsegn){S.cl.aptPage=null;S._apriSegn=d.capsegn;apriSegnPend();return;}
  if(d.spcompra){var Lc=spScelte(S.boss),nomi=[];Lc.forEach(function(m){var k=String(m.item).trim();if(nomi.indexOf(k)<0)nomi.push(k)});S.boss.af=Object.assign({},S.boss.af||{},{aq_desc:nomi.join(', '),aq_cat:'prodotti'});S.boss.tab='acq';render();window.scrollTo(0,0);toast('Completa importo, pagamento e scontrino, poi salva');return;}
  if(d.spnonserve){var Ln=spScelte(S.boss),idn=Ln.map(function(m){return m.id});if(!idn.length)return;if(!confirm('Togliere '+idn.length+(idn.length===1?' voce':' voci')+' dalla lista della spesa senza comprarle?'))return;var upn=await sb.from('manca').update({done:true}).in('id',idn);if(upn.error)throw upn.error;S.boss.manca=(S.boss.manca||[]).filter(function(m){return idn.indexOf(m.id)<0});S.boss.spSel={};render();toast('Tolte dalla lista');return;}
  if(d.sgrturno){S.boss.sgrTurno=d.sgrturno;render();return;}
