@@ -680,17 +680,18 @@ async function loadAgenda(){
 // 21/10: chiusura della giornata (solo amministratori). Le regole di «fatta» sono quelle del conto: passaggio chiuso nell'app
 // oppure lavoro confermato in chat (lavori_manuali). Dal 1/10/2026 (settembre era la prova).
 var DS_DAL='2026-10-01';
-async function loadDaSistemare(){var B=S.boss;if(!isAdmin()){B.ds=null;return;}
+function segr(){return !!(S.profile&&S.profile.segreteria);} // 23/10: segreteria (Siham) = chiusura della giornata senza prezzi
+async function loadDaSistemare(){var B=S.boss;if(!(isAdmin()||segr())){B.ds=null;return;}
  var oggi=todayStr(),da=addDays(oggi,-30);if(da<DS_DAL)da=DS_DAL;
  try{var r=await sb.rpc('da_sistemare',{p_da:da,p_a:oggi});if(r.error)throw r.error;var ids=r.data||[];if(!ids.length){B.ds={rows:[],pass:{},extra:[]};return;}
   var R=await Promise.all([sb.from('program').select('*, apartments(id,name,code,client,max_min,size), profiles(name)').in('id',ids),
    sb.from('passaggi').select('id,program_id,started_at,closed_at,user_id').in('program_id',ids),
-   sb.from('extra_clienti').select('day,apt_id,descrizione,importo').gte('day',da).lte('day',oggi)]);
+   isAdmin()?sb.from('extra_clienti').select('day,apt_id,descrizione,importo').gte('day',da).lte('day',oggi):sb.rpc('extra_giorni',{p_da:da,p_a:oggi})]);
   var pass={};(R[1].data||[]).forEach(function(x){pass[x.program_id]=x});
   B.ds={rows:(R[0].data||[]).sort(function(a,b){return a.day<b.day?-1:a.day>b.day?1:a.id-b.id}),pass:pass,extra:R[2].data||[]};
  }catch(e){logErr('da-sistemare',e);B.ds=null;}}
 function hhmm(iso){return iso?hm(iso):'';}
-function dsCard(B){var D=B.ds;if(!isAdmin()||!D||!D.rows.length)return '';var oggi=todayStr();
+function dsCard(B){var D=B.ds;if(!(isAdmin()||segr())||!D||!D.rows.length)return '';var oggi=todayStr();
  var ops=(B.ops||[]).filter(function(o){return o.active&&(o.role==='op'||o.role==='boss')});
  return '<div class="card dsis"><h2 class="ddh">'+mIco('richieste')+'Da sistemare <span class="pill warn">'+D.rows.length+'</span></h2><p class="note" style="margin:0 0 8px">Pulizie in programma che non risultano fatte: né chiuse nell’app né confermate in chat. Così conto del cliente e ore delle ragazze tornano.</p>'+
   D.rows.map(function(pr){var a=pr.apartments||{},pa=D.pass[pr.id],sel=B.dsSel&&B.dsSel.id===pr.id?B.dsSel:null;
@@ -740,7 +741,7 @@ async function loadBoss(){caricaCopertine().then(function(c){if(c)render()});
  S.boss.rich=R[4].error?[]:(R[4].data||[]);S.boss.recl=R[5].error?[]:(R[5].data||[]);S.boss.apts=R[6].data||[];S.boss.ops=R[7].data||[];
  if(adm){S.boss.costi={};(R[8].data||[]).forEach(function(c){S.boss.costi[c.apt_id]=c});S.boss.par=R[9].data||[];}
  S.boss.segnChiuse=R[10].error?[]:(R[10].data||[]);
- if(adm)await loadDaSistemare();
+ if(adm||segr())await loadDaSistemare();
  var ids=S.boss.program.filter(function(x){return x.apt_id}).map(function(x){return x.id});
  var ps=ids.length?await sb.from('passaggi').select('*').in('program_id',ids):{data:[]};S.boss.passaggi=ps.data||[];
  for(var bi=0;bi<S.boss.passaggi.length;bi++){var bp=S.boss.passaggi[bi];if(bp.closed_at||bp.fermato_at||!bp.started_at)continue;var bpr=S.boss.program.filter(function(x){return x.id===bp.program_id})[0];if(bpr&&Date.now()>=scadenza(bpr,bp)){var rb=await sb.from('passaggi').update({fermato_at:new Date(scadenza(bpr,bp)).toISOString(),over_by_min:MARGINE_STOP}).eq('id',bp.id).is('fermato_at',null).select().maybeSingle();if(rb.data)S.boss.passaggi[bi]=rb.data;}}
