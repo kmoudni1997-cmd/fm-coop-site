@@ -7,6 +7,7 @@ self.addEventListener('notificationclick', function (e) {
   e.notification.close();
   // 23/10: la notifica di una segnalazione (tag «sg<id>-…») apre proprio quella segnalazione
   var m = /^sg(\d+)-/.exec(e.notification.tag || ''), dove = m ? '#segn-' + m[1] : '';
+  if (/^rap-/.test(e.notification.tag || '')) dove = '#rapporto';   // 23/10: rapporto settimanale del cliente
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (L) {
     for (var i = 0; i < L.length; i++) { if (L[i].url.indexOf('/app/') >= 0 && 'focus' in L[i]) { if (dove) L[i].postMessage({ fmApri: dove }); return L[i].focus(); } }
     return self.clients.openWindow('/app/' + dove);

@@ -507,9 +507,12 @@ button.rpi{border:0;background:transparent;font:inherit;color:inherit;cursor:poi
 .acbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
 .acb{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .acb small{display:block;color:var(--mute);font-size:11px;font-weight:700}.acb b{display:block;font-size:15px}.acb b::first-letter{text-transform:uppercase}.acb .note{font-size:11px}
-.acr{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);width:100%}.acr>span:first-child{text-transform:capitalize;white-space:nowrap}
+.acr{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);width:100%}.acr>span.gg{text-transform:capitalize;white-space:nowrap}
 .acr:first-of-type{border-top:0}
 button.acbtn{background:transparent;border:0;border-top:1px solid var(--line);font:inherit;color:inherit;text-align:left;cursor:pointer}
+
+/* 23/10 rapporto settimanale del cliente */
+.rapban{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:2px solid var(--acc,#e0a526);cursor:pointer;font:inherit;color:inherit}
 </style>
 </head>
 <body>
@@ -1131,9 +1134,38 @@ function vAptCl(C){var a=(C.apts||[]).filter(function(x){return x.id===C.aptPage
  var gg=function(d){return pdate(d).fmD({weekday:'short',day:'numeric',month:'short'})};
  var box=function(ic,tit,val,sub){return '<div class="acb">'+mIco(ic,'sghi')+'<div><small>'+tit+'</small><b>'+val+'</b>'+(sub?'<span class="note">'+sub+'</span>':'')+'</div></div>'};
  var h=top+'<div class="acbs">'+box('fatto','Ultima pulizia',ult?gg(ult.dayCl):'—',ult?'fatta':'')+box('calendario','Prossima',prossime[0]?gg(prossime[0].day):'nessuna in programma',prossime.length>1?'e altre '+(prossime.length-1):'')+box('segnalazione','Segnalazioni aperte',String(sg.length),'')+box('pulizia','Pulizie negli ultimi 30 giorni',String(fatte.filter(function(x){return x.dayCl>=addDays(oggi,-30)}).length),'')+'</div>';
- if(prossime.length)h+='<div class="card"><h2 style="margin-bottom:6px">In programma</h2>'+prossime.slice(0,10).map(function(x){return '<div class="acr"><span>'+gg(x.day)+'</span><span class="note">'+esc(x.note||(x.guests?x.guests+' ospiti':''))+'</span><span class="pill grey">Da fare</span></div>'}).join('')+'</div>';
- if(sg.length)h+='<div class="card"><h2 style="margin-bottom:6px">Segnalazioni aperte</h2>'+sg.map(function(s){return '<div class="acr"><span>'+new Date(s.created_at).fmD({day:'numeric',month:'short'})+'</span><span style="flex:1">'+esc(s.text||s.type)+'</span><button class="mini" data-capsegn="'+s.id+'">Apri</button></div>'}).join('')+'</div>';
- h+='<div class="card"><h2 style="margin-bottom:6px">Storico delle pulizie</h2>'+(fatte.length?fatte.slice(0,30).map(function(x){return '<button class="acr acbtn" data-capdet="'+x.id+'" data-capday="'+x.dayCl+'"><span>'+gg(x.dayCl)+'</span><span class="note" style="flex:1">'+esc(x.guests?x.guests+' ospiti':'')+'</span><span class="pill ok">Fatto</span><span class="sgar">›</span></button>'}).join(''):'<p class="note">Nessuna pulizia negli ultimi 4 mesi.</p>')+'</div>';
+ if(prossime.length)h+='<div class="card"><h2 style="margin-bottom:6px">In programma</h2>'+prossime.slice(0,10).map(function(x){return '<div class="acr"><span class="gg">'+gg(x.day)+'</span><span class="note">'+esc(x.note||(x.guests?x.guests+' ospiti':''))+'</span><span class="pill grey">Da fare</span></div>'}).join('')+'</div>';
+ if(sg.length)h+='<div class="card"><h2 style="margin-bottom:6px">Segnalazioni aperte</h2>'+sg.map(function(s){return '<div class="acr"><span class="gg">'+new Date(s.created_at).fmD({day:'numeric',month:'short'})+'</span><span style="flex:1">'+esc(s.text||s.type)+'</span><button class="mini" data-capsegn="'+s.id+'">Apri</button></div>'}).join('')+'</div>';
+ h+='<div class="card"><h2 style="margin-bottom:6px">Storico delle pulizie</h2>'+(fatte.length?fatte.slice(0,30).map(function(x){return '<button class="acr acbtn" data-capdet="'+x.id+'" data-capday="'+x.dayCl+'"><span class="gg">'+gg(x.dayCl)+'</span><span class="note" style="flex:1">'+esc(x.guests?x.guests+' ospiti':'')+'</span><span class="pill ok">Fatto</span><span class="sgar">›</span></button>'}).join(''):'<p class="note">Nessuna pulizia negli ultimi 4 mesi.</p>')+'</div>';
+ return h;}
+// 23/10: rapporto della settimana per il cliente (lunedì → domenica, dati da rapporto_settimana)
+function lunDi(d){var x=pdate(d),g=(x.getDay()+6)%7;x.setDate(x.getDate()-g);return dstr(x);}
+function rapLunScorso(){return addDays(lunDi(todayStr()),-7);}
+function rapPeriodo(lun){var a=pdate(lun),b=pdate(addDays(lun,6));return 'Dal '+a.getDate()+(a.getMonth()!==b.getMonth()?' '+a.fmD({month:'long'}):'')+' al '+b.fmD({day:'numeric',month:'long',year:'numeric'});}
+function rapVisto(){try{return localStorage.getItem('fm_rap_visto')||''}catch(e){return ''}}
+async function caricaRap(lun){var C=S.cl;C.rap={lun:lun,dati:null};render();
+ var r=await sb.rpc('rapporto_settimana',{p_lun:lun});C.rap={lun:lun,dati:r.error?null:r.data,err:r.error?r.error.message:null};
+ if(r.error)logErr('rapporto-cliente',r.error);try{if(lun===rapLunScorso())localStorage.setItem('fm_rap_visto',lun)}catch(e){}render();}
+function rapBanner(C){var lun=rapLunScorso(),g=new Date().getDay();if(rapVisto()===lun||!(g>=1&&g<=3))return '<button class="mini" data-crap="'+lun+'" style="margin:0 0 10px">'+mIco('conto','mi')+' Rapporto settimanale</button>';
+ return '<button class="card rapban" data-crap="'+lun+'">'+mIco('conto','sghi')+'<span style="flex:1"><b>Il rapporto della settimana è pronto</b><br><span class="note">'+rapPeriodo(lun)+': pulizie fatte, segnalazioni, prossima settimana.</span></span><span class="sgar">›</span></button>';}
+function vRapp(C){var R=C.rap||{},lun=R.lun||rapLunScorso(),D=R.dati;
+ var h='<div class="row" style="justify-content:space-between;gap:8px"><h1 style="margin:0">Rapporto settimanale</h1><button class="mini" data-ctab="oggi">← Appartamenti</button></div>'+
+  '<div class="cdh" style="margin:10px 0"><button class="rnd" data-crap="'+addDays(lun,-7)+'">‹</button><span class="cdl" style="flex:1;justify-content:center">'+mIco('calendario','cdi')+'<span style="text-transform:none">'+rapPeriodo(lun)+'</span></span>'+(lun<rapLunScorso()?'<button class="rnd" data-crap="'+addDays(lun,7)+'">›</button>':'<span class="rnd" style="visibility:hidden">›</span>')+'</div>';
+ if(!D)return h+(R.err?'<div class="card">Rapporto non disponibile: '+esc(R.err)+'</div>':'<div class="card"><span class="spin"></span> carico…</div>');
+ var box=function(ic,tit,val,sub){return '<div class="acb">'+mIco(ic,'sghi')+'<div><small>'+tit+'</small><b>'+val+'</b>'+(sub?'<span class="note">'+sub+'</span>':'')+'</div></div>'};
+ var na=(D.apts||[]).length;
+ h+='<div class="acbs">'+box('pulizia','Pulizie fatte',String(D.pulizie),na?(na===1?'in 1 appartamento':'in '+na+' appartamenti'):'')+box('fondo','Pulizia di fondo',String(D.fondo),D.fondo===1?'lavoro in più':'lavori in più')+
+  box('manutenzione','Manutenzioni fatte',String(D.man_fatte),'')+box('segnalazione','Segnalazioni nuove',String(D.segn_nuove),'')+'</div>';
+ if(na)h+='<div class="card"><h2 style="margin-bottom:6px">Pulizie per appartamento</h2>'+D.apts.map(function(a){return '<div class="acr"><span style="flex:1;white-space:normal">'+esc(a.name)+'<br><span class="note">'+(a.giorni||[]).map(function(g){return pdate(g).fmD({weekday:'short',day:'numeric'})}).join(' · ')+'</span></span><span class="pill ok">×'+a.n+'</span></div>'}).join('')+'</div>';
+ else h+=vuoto('calendario','Nessuna pulizia chiusa in questa settimana.');
+ h+='<div class="card"><h2 style="margin-bottom:6px">Segnalazioni</h2>'+
+  '<div class="acr"><span style="flex:1">Arrivate in settimana</span><b>'+D.segn_nuove+'</b></div>'+
+  '<div class="acr"><span style="flex:1">Sistemate da FM Coop</span><b>'+D.segn_fm+'</b></div>'+
+  '<div class="acr"><span style="flex:1">Sistemate da voi</span><b>'+D.segn_cliente+'</b></div>'+
+  '<div class="acr"><span style="flex:1">Ancora aperte oggi</span><b>'+D.segn_aperte+'</b></div>'+
+  (D.segn_aperte?'<button class="mini" data-ctab="segn" style="margin-top:8px">Vedi le segnalazioni aperte</button>':'')+'</div>';
+ h+='<div class="card"><div class="acr"><span style="flex:1">Richieste che ci avete mandato</span><b>'+D.richieste+'</b></div><div class="acr"><span style="flex:1">Pulizie in programma la settimana dopo</span><b>'+D.prossime+'</b></div></div>'+
+  '<p class="note">Contano le pulizie chiuse nell’app con foto e check-list. Ogni pulizia si può rivedere in «Schede» › «Storico e prossime pulizie».</p>';
  return h;}
 function vAcq(B){var A=B.acq=B.acq||{};A.m=A.m||meseDi(todayStr());A.f=A.f||'tutti';var F=B.af||{},g=function(k,d){return F[k]!=null?F[k]:(d||'')};
  var resp=(B.ops||[]).filter(function(o){return o.active&&(o.role==='boss'||o.role==='admin')&&o.username!=='nexus'}).sort(function(a,b){return a.name<b.name?-1:1});
@@ -1191,7 +1223,9 @@ function quasiFinito(p2){try{var pr=S.apt;if(!pr||!p2||p2.closed_at||p2._qf||!pr
 function clCardSegn(s,conApp){return '<div class="card" id="sg-'+s.id+'"><div class="row"><span class="pill '+(s.status==='chiusa'?'ok':s.status==='presa'?'warn':'bad')+'">'+esc(s.type)+'</span><span style="margin-left:auto;color:var(--mute);font-size:13px">'+new Date(s.created_at).fmD()+' '+hm(s.created_at)+'</span></div>'+(conApp&&s.apartments?'<p style="margin:8px 0 0"><b>'+esc(s.apartments.name)+'</b></p>':'')+'<p style="margin:6px 0 0">'+esc(s.text||'(solo foto)')+'</p><p class="note" style="margin:4px 0 0">'+(s.status==='chiusa'?(s.chiusa_da_cliente?'<b style="color:var(--ok)">'+em('fatto')+' Fatto da '+esc(clSigla())+'</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():''):'<b style="color:var(--ok)">'+em('fatto')+' Fatto da FM Coop</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():'')):s.status==='presa'?'Presa in carico da FM':'Aperta')+'</p>'+(s.chiusa_da_cliente&&s.chiusa_nota?'<p class="note" style="margin:2px 0 0">Nota: '+esc(s.chiusa_nota)+'</p>':'')+(s.status!=='chiusa'?'<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="mini" data-csist="'+s.id+'">'+em('fatto')+' Fatto da '+esc(clSigla())+'</button>'+(s.fm_chiesto_at?'':'<button class="mini" data-cfm="'+s.id+'">🔧 Fate voi FM</button>')+'</div>':'')+clFotoSeg(s)+fmInfo(s,true)+pvBox(s,true)+lavFatto(s)+'</div>';}
 var CL_NAV=[['oggi','🏠','Appartamenti'],['rich','📝','Richieste'],['segn','📸','Segnalazioni'],['acq','🧾','Acquisti'],['bia','🛏','Biancheria'],['codici','🏠','Schede'],['conto','💶','Conto']];
 function vClient(){var C=S.cl,body='',title='';if(!clEcon()&&C.tab==='conto')C.tab='oggi';var pvN=(C.segn||[]).filter(function(s){return s.prev_stato==='proposto'});
- if(C.tab==='conto'){title='Conto';body=vConto(C);}
+ if(S._apriRap){S._apriRap=0;C.tab='rapp';setTimeout(function(){caricaRap(rapLunScorso())},0);}
+ if(C.tab==='rapp'){title='Rapporto settimanale';body=vRapp(C);}
+ else if(C.tab==='conto'){title='Conto';body=vConto(C);}
  else if(C.tab==='codici'&&C.aptPage){title='Appartamento';body=vAptCl(C);}
  else if(C.tab==='codici'){title='Schede e codici';if(!clApts(C)){body='<div class="card"><span class="spin"></span> carico…</div>';}
   else{var q=(C.cq||'').toLowerCase();var L=C.apts.filter(function(a){return !q||a.name.toLowerCase().indexOf(q)>=0||(a.address||'').toLowerCase().indexOf(q)>=0});
@@ -1216,6 +1250,7 @@ function vClient(){var C=S.cl,body='',title='';if(!clEcon()&&C.tab==='conto')C.t
  } else {title='Appartamenti';var done=C.rows.filter(function(x){var p=C.pass[x.id];return p&&p.closed_at}).length;
   body='<div class="cdh"><button class="rnd" data-cnav="-1">‹</button><label class="cdl">'+mIco('calendario','cdi')+'<span>'+(C.date===todayStr()?'Oggi · ':'')+pdate(C.date).fmD({weekday:'short',day:'numeric',month:'long'})+'</span><input type="date" id="cdate" value="'+C.date+'" title="Vai a una data"></label><button class="rnd" data-cnav="1">›</button>'+(C.date!==todayStr()?'<button class="mini" data-cnav="0">Oggi</button>':'')+'</div>'+
    ((C.manDay||[]).length?'<div class="card list"><h2 style="margin-bottom:6px">🔧 Manutenzioni del giorno</h2>'+C.manDay.map(function(pr){var L=(C.manLav||{})[pr.segnalazione_id];return '<button class="it" data-ctab="segn" style="display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:8px 0;border:0;border-top:1px solid var(--line);background:none;font:inherit;color:inherit;cursor:pointer"><span><b>'+esc(pr.apartments.name)+'</b><br><span class="note">'+esc(pr.apartments.address||'')+'</span></span><span class="pill '+(L&&L.closed_at?'ok':L?'warn':'grey')+'">'+(L&&L.closed_at?em('fatto')+' Fatto alle '+hm(L.closed_at):L?'In corso':'In programma')+'</span></button>'}).join('')+'<p class="note" style="margin:6px 0 0">Tocchi una voce per vedere i video prima e dopo l’intervento (in Segnalazioni).</p></div>':'')+(C.rows.length?riepGiorno(C.date,C.rows.length,done,C.rows.filter(function(x){var p=C.pass[x.id];return p&&p.started_at&&!p.closed_at}).length,(C.segn||[]).filter(function(s){return s.created_at&&dstr(new Date(s.created_at))===C.date}).length)+'<div class="cgrid">'+C.rows.map(function(pr){var a=pr.apartments,pz=C.pass[pr.id],st=clStato(pz),cls=st[0]==='ok'?'done':st[0]==='warn'?'doing':'todo';var tot=0,okc=0;if(pz){chkOf(a).forEach(function(r,ri){r.items.forEach(function(_,ii){tot++;if(pz.checklist&&pz.checklist[ri+'-'+ii])okc++;})});}var pct=pz&&pz.closed_at?100:(tot?Math.round(okc/tot*100):0);var cov=(C.cover||{})[pr.apt_id];return '<button class="apt s-'+cls+'" data-cdet="'+pr.id+'">'+(cov?'<span class="cov" style="background-image:url('+cov+')"></span>':'<span class="cov ini">'+esc((a.name||'?').charAt(0))+'</span>')+'<span style="flex:1;min-width:0"><span class="n">'+esc(a.name)+'</span><br><span class="s">'+esc(a.address||'')+(pr.guests?' · <span class="osp">'+mIco('ospiti','ospi')+pr.guests+'</span>':'')+(function(){var pz=C.pass[pr.id],L=pz&&C.fondo&&C.fondo[pz.id];return L&&L.length?' · <b style="color:var(--ok)">🧽 pulizia di fondo</b>':'';})()+(function(){var oc=oreCl(C,pr,C.pass[pr.id]);return oc?' · 💶 '+oc.breve:'';})()+'</span>'+(pz?'<span class="prog"><i class="'+cls+'" style="width:'+pct+'%"></i></span><span class="s">'+(pz.closed_at?'Pulizia completata':'Check-list '+pct+'%')+'</span>'+(!pz.closed_at&&pct>=75?'<span class="vialib"><i></i>Via libera per il controllo</span>':''):'')+'</span><span class="pill '+(cls==='done'?'ok':cls==='doing'?'warn':'grey')+'">'+st[1]+'</span></button>'}).join('')+'</div>':vuoto('calendario','Nessuna pulizia in programma in questo giorno.'));}
+ if(C.tab==='oggi')body=rapBanner(C)+body;
  if(pvN.length&&C.tab!=='segn')body='<button class="card" data-ctab="segn" style="display:block;width:100%;text-align:left;border:2px solid var(--warn);cursor:pointer"><b>💶 '+(pvN.length===1?'1 preventivo da approvare':pvN.length+' preventivi da approvare')+'</b><br><span class="note">Tocchi qui per vederlo e rispondere.</span></button>'+body;
  if(!avvisiSi()&&!avvNonOra())body='<div class="avstrip">'+mIco('notifiche','avi')+'<span class="avt"><b>Attivi le notifiche</b><small>Preventivi, lavori fatti e avviso «quasi finito».'+(/iPhone|iPad/.test(navigator.userAgent)?' Su iPhone prima: Condividi › «Aggiungi alla schermata Home».':'')+'</small></span><button class="mini acc" data-avvisi="1">Attiva</button><button class="avx" data-avvno="1" title="Non ora">✕</button></div>'+body;
  return topbar(title,null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?ico('bell'):ico('belloff'))+'</button><button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button><button data-logout="1">Esci</button>')+shellWith(clNav(),C.tab,'ctab',body,(C.tab==='oggi'||C.tab==='conto'||C.tab==='segn')?'narrow clw':'narrow');
@@ -1861,8 +1896,8 @@ function apriSegnPend(){var id=S._apriSegn;if(!id||!S.user)return;var L=isClient
  var sg=L.filter(function(x){return String(x.id)===String(id)})[0]||(!isClient()&&(S.boss.segnChiuse||[]).filter(function(x){return String(x.id)===String(id)})[0]);S._apriSegn=null;
  if(isClient()){S.cl.tab='segn';S.cl.sgOpen={};if(sg)S.cl.sgOpen[segnKey(sg)]=true;}else if(isBoss()){S.view='boss';S.boss.tab='segn';S.boss.sgOpen=sg?segnKey(sg,true):'nuo';}
  render();setTimeout(function(){var el=document.getElementById('sg-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('flash');}},150);}
-(function(){var m=/^#segn-(\d+)$/.exec(location.hash||'');if(m){S._apriSegn=m[1];try{history.replaceState(null,'',location.pathname)}catch(e){}}})();
-if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',function(e){var m=e.data&&/^#segn-(\d+)$/.exec(e.data.fmApri||'');if(m){S._apriSegn=m[1];apriSegnPend();}});
+(function(){var m=/^#segn-(\d+)$/.exec(location.hash||'');if(m){S._apriSegn=m[1];try{history.replaceState(null,'',location.pathname)}catch(e){}}if(location.hash==='#rapporto'){S._apriRap=1;try{history.replaceState(null,'',location.pathname)}catch(e){}}})();
+if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',function(e){var m=e.data&&/^#segn-(\d+)$/.exec(e.data.fmApri||'');if(m){S._apriSegn=m[1];apriSegnPend();}else if(e.data&&e.data.fmApri==='#rapporto'&&isClient()&&S.cl){S.cl.tab='rapp';caricaRap(rapLunScorso());}});
 function render(){
  var v=S.view,h;
  if(!S.user||v==='login')h=vLogin();else if(v==='newpin')h=vNewPin();else if(isClient())h=vClient();else if(isBoss()&&!S.actAs)h=(S.boss.tab==='agenda')?vAgenda():vBoss();else if(v==='agenda')h=vAgenda();else if(v==='apts')h=vAptsOp();else if(v==='ore')h=vOre();else if(v==='aptinfo')h=vAptInfo();else if(v==='apt')h=vApt();else if(v==='check')h=vCheck();else if(v==='manca')h=vManca();else if(v==='segnala')h=vSegnala();else if(v==='parcheggio')h=vParcheggio();else if(v==='scheda')h=vScheda();else if(v==='schedaag')h=vSchedaAg();else h=vOggi();
@@ -1953,6 +1988,7 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.crap){S.cl.tab='rapp';S.cl.det=null;S.cl.aptPage=null;window.scrollTo(0,0);caricaRap(d.crap);return;}
  if(d.capt){S.cl.aptPage=Number(d.capt);window.scrollTo(0,0);caricaAptCl(S.cl.aptPage);return;}
  if(d.captx){S.cl.aptPage=null;S.cl.aptDati=null;render();return;}
  if(d.capdet){S.cl.aptPage=null;S.cl.tab='oggi';S.cl.date=d.capday;S.cl.det=null;await loadClient();S.cl.det=Number(d.capdet);render();window.scrollTo(0,0);return;}
