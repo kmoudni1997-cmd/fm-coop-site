@@ -479,6 +479,19 @@ main.login{margin-top:0}
 button.rpi{border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;padding:0}
 .card.flash{animation:flash 2s ease-out}
 @keyframes flash{0%{box-shadow:0 0 0 4px #E0A63A}100%{box-shadow:0 0 0 0 rgba(224,166,58,0)}}
+
+/* 23/10 checklist della segreteria */
+.sgrc{border:2px solid #9fd3b2}
+.sgrh{display:flex;align-items:center;gap:10px}
+.sgrt{display:flex;gap:6px;margin:10px 0 6px}
+.sgrg h3{margin:14px 0 6px;display:flex;align-items:center;gap:6px}
+.sgrv{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding:8px 0}
+.sgrv.ok .sgrl span{color:var(--mute);text-decoration:line-through}
+.sgrl{display:flex;gap:10px;align-items:flex-start;flex:1;min-width:200px;cursor:pointer}
+.sgrl input{width:24px;height:24px;flex:none;margin-top:1px}
+.sgrn{width:80px !important;padding:6px 8px !important}
+.sgrnota{width:100%}
+.sgra{border-top:1px solid var(--line);padding:10px 0}
 </style>
 </head>
 <body>
@@ -730,6 +743,33 @@ async function dsSalva(id){var B=S.boss,pr=B.ds.rows.filter(function(x){return x
   var de=await sb.from('program').delete().eq('id',id);if(de.error)throw de.error;toast(vu&&vu.checked?'Tolta dal programma, 12 € di passaggio a vuoto':'Tolta dal programma');}
  else{var nd=(S.boss.dsVal||{}).ds_day;if(!nd){toast('Scegli il giorno');return false;}var up=await sb.from('program').update({day:nd}).eq('id',id);if(up.error)throw up.error;toast('Spostata al '+pdate(nd).fmD({day:'numeric',month:'long'}));}
  return true;}
+// 23/10: checklist della segreteria (le voci si cambiano qui: [chiave, testo, chiede un numero])
+var SGR_VOCI=[['Apertura','casa',[['luci','Luci, PC e stampante accesi; ufficio arieggiato'],['postazione','Postazione pulita (scrivania, tastiera, telefono) e ufficio in ordine'],['posta','Posta e pacchi ritirati; lettere importanti fotografate e segnalate a Karim']]],
+ ['Messaggi','messaggio',[['messaggi','Email di info@ e WhatsApp della coop letti; richieste dei clienti segnalate a Karim (non si risponde su prezzi, date e codici)']]],
+ ['Commerciale (Claude prepara, tu mandi)','prezzo',[['email','Email del giorno mandate dalle Bozze',1],['whatsapp','WhatsApp del giro mandati dal 350',1],['risposte','Risposte pronte e richiami mandati',1],['telefonate','Telefonate semplici ai fissi per avere nome ed email',1]]],
+ ['Squadra','squadra',[['assegnati','Ogni lavoro di oggi ha una ragazza (se no, avvisa Karim o Youssef)'],['conferme','Ragazze chiamate per confermare domani',1],['kit','Kit e prodotti preparati; lista acquisti aggiornata'],['biancheria','Biancheria controllata (sacchi puliti e sporchi, La Rosa)'],['chiavi','Registro chiavi controllato']]],
+ ['Ufficio','archivio',[['documenti','Documenti e permessi delle ragazze sollecitati (almeno 2)',1],['scansioni','Carta scansionata e messa in «DA ARCHIVIARE»',1],['scontrini','Scontrini e acquisti segnati nell’app (quelli da far pagare al cliente «nel conto»)'],['contratto','Un contratto o un dato di un cliente recuperato']]],
+ ['Chiusura','riposo',[['riepilogo','Riepilogo per Karim (email e WhatsApp mandati, risposte, cosa serve da lui)',0,1],['chiusura','PC e luci spenti, finestre chiuse, ufficio chiuso a chiave']]]];
+var SGR_N=SGR_VOCI.reduce(function(t,g){return t+g[2].length},0);
+function sgrTurno(){var B=S.boss;if(!B.sgrTurno)B.sgrTurno=new Date().getHours()<13?'mattina':'pomeriggio';return B.sgrTurno;}
+async function loadSegreteria(){var B=S.boss;if(!(segr()||isAdmin())){B.sgr=null;return;}
+ try{var q=sb.from('checklist_segreteria').select('*').eq('day',segr()?todayStr():B.date);if(segr())q=q.eq('user_id',S.user.id);var r=await q;B.sgr=r.error?[]:(r.data||[]);
+  if(isAdmin()&&!segr()&&!B.sgrNomi){var pz=await sb.from('profiles').select('id,name').eq('segreteria',true);B.sgrNomi={};(pz.data||[]).forEach(function(x){B.sgrNomi[x.id]=x.name});}}catch(e){B.sgr=[];}}
+function sgrRiga(uid,turno,k){return (S.boss.sgr||[]).filter(function(x){return x.user_id===uid&&x.turno===turno&&x.voce===k})[0];}
+// la checklist di Siham (si spunta)
+function sgrCard(B){if(!segr()||!B.sgr)return '';var tu=sgrTurno(),uid=S.user.id,fatte=0;
+ var corpo=SGR_VOCI.map(function(g){return '<div class="sgrg"><h3>'+mIco(g[1],'mi')+' '+g[0]+'</h3>'+g[2].map(function(v){var r=sgrRiga(uid,tu,v[0]),ok=!!(r&&r.fatto_at);if(ok)fatte++;
+   return '<div class="sgrv'+(ok?' ok':'')+'"><label class="sgrl"><input type="checkbox" data-sgrv="'+v[0]+'" '+(ok?'checked':'')+'><span>'+esc(v[1])+'</span></label>'+(v[2]?'<input type="number" min="0" inputmode="numeric" class="sgrn" data-sgrn="'+v[0]+'" value="'+(r&&r.numero!=null?r.numero:'')+'" placeholder="n.">':'')+
+    (v[3]?'<textarea class="sgrnota" data-sgrnota="'+v[0]+'" rows="2" placeholder="Scrivi qui il riepilogo per Karim">'+esc((r&&r.nota)||'')+'</textarea><button class="mini" data-dsopen="1" style="margin-top:6px">Apri «Da sistemare»</button>':'')+'</div>'}).join('')+'</div>'}).join('');
+ return '<div class="card sgrc"><div class="sgrh">'+mIco('fatto','sghi')+'<span class="sght"><b>La mia giornata</b><small>'+fatte+' su '+SGR_N+' fatte · si salva da sola</small></span></div><div class="sgrt"><button class="mini'+(tu==='mattina'?' acc':'')+'" data-sgrturno="mattina">Mattina 9-12</button><button class="mini'+(tu==='pomeriggio'?' acc':'')+'" data-sgrturno="pomeriggio">Pomeriggio 14-18</button></div><div class="rpb"><i style="width:'+Math.round(fatte/SGR_N*100)+'%"></i></div>'+corpo+'</div>';}
+// quello che vede Karim (solo lettura, giorno del pannello)
+function sgrAdmin(B){if(!isAdmin()||segr()||!B.sgr)return '';var nomi=B.sgrNomi||{},uids=Object.keys(nomi);if(!uids.length)return '';
+ var h=uids.map(function(uid){return ['mattina','pomeriggio'].map(function(tu){var ok=0,num=[],manca=[],nota='';SGR_VOCI.forEach(function(g){g[2].forEach(function(v){var r=sgrRiga(uid,tu,v[0]);if(r&&r.fatto_at)ok++;else manca.push(v[1]);if(r&&r.numero!=null)num.push(v[1].split(' ').slice(0,3).join(' ')+': <b>'+r.numero+'</b>');if(r&&r.nota)nota=r.nota;})});
+   return '<div class="sgra"><div class="row" style="justify-content:space-between"><b>'+esc(nomi[uid])+' · '+(tu==='mattina'?'mattina':'pomeriggio')+'</b><span class="pill '+(ok===SGR_N?'ok':ok?'warn':'grey')+'">'+ok+'/'+SGR_N+'</span></div>'+(num.length?'<p class="note" style="margin:4px 0 0">'+num.join(' · ')+'</p>':'')+(nota?'<p style="margin:6px 0 0;white-space:pre-wrap">'+esc(nota)+'</p>':'')+(ok&&manca.length?'<details style="margin-top:4px"><summary class="note">Mancano '+manca.length+'</summary><ul class="voci">'+manca.map(function(m){return '<li>'+esc(m)+'</li>'}).join('')+'</ul></details>':'')+'</div>'}).join('')}).join('');
+ return '<div class="card sgrc"><div class="sgrh">'+mIco('squadra','sghi')+'<span class="sght"><b>Segreteria</b><small>La giornata di '+(B.date===todayStr()?'oggi':pdate(B.date).fmD({day:'numeric',month:'long'}))+' (cambia giorno con la data in alto)</small></span></div>'+h+'</div>';}
+async function sgrSalva(k,campi){var tu=sgrTurno(),uid=S.user.id,r=sgrRiga(uid,tu,k)||{};var riga=Object.assign({day:todayStr(),user_id:uid,turno:tu,voce:k,fatto_at:r.fatto_at||null,numero:r.numero!=null?r.numero:null,nota:r.nota||null,aggiornato:new Date().toISOString()},campi);
+ var up=await sb.from('checklist_segreteria').upsert(riga,{onConflict:'day,user_id,turno,voce'}).select().single();if(up.error)throw up.error;
+ S.boss.sgr=(S.boss.sgr||[]).filter(function(x){return !(x.user_id===uid&&x.turno===tu&&x.voce===k)}).concat([up.data]);}
 async function loadBoss(){caricaCopertine().then(function(c){if(c)render()});
  var d=S.boss.date,adm=isAdmin(),nulla=Promise.resolve({data:null});
  // 21/10: tutte insieme (prima 12 una dopo l'altra)
@@ -750,6 +790,7 @@ async function loadBoss(){caricaCopertine().then(function(c){if(c)render()});
  if(adm){S.boss.costi={};(R[8].data||[]).forEach(function(c){S.boss.costi[c.apt_id]=c});S.boss.par=R[9].data||[];}
  S.boss.segnChiuse=R[10].error?[]:(R[10].data||[]);
  if(adm||segr())await loadDaSistemare();
+ if(adm||segr())await loadSegreteria();
  var ids=S.boss.program.filter(function(x){return x.apt_id}).map(function(x){return x.id});
  var ps=ids.length?await sb.from('passaggi').select('*').in('program_id',ids):{data:[]};S.boss.passaggi=ps.data||[];
  for(var bi=0;bi<S.boss.passaggi.length;bi++){var bp=S.boss.passaggi[bi];if(bp.closed_at||bp.fermato_at||!bp.started_at)continue;var bpr=S.boss.program.filter(function(x){return x.id===bp.program_id})[0];if(bpr&&Date.now()>=scadenza(bpr,bp)){var rb=await sb.from('passaggi').update({fermato_at:new Date(scadenza(bpr,bp)).toISOString(),over_by_min:MARGINE_STOP}).eq('id',bp.id).is('fermato_at',null).select().maybeSingle();if(rb.data)S.boss.passaggi[bi]=rb.data;}}
@@ -1709,7 +1750,7 @@ function vBoss(){
   return topbar(title,null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?ico('bell'):ico('belloff'))+'</button><button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button><button data-logout="1">Esci</button>')+shellBoss('oggi',body);}}
  if(tab==='oggi'){title='Oggi';
   var offs=B.program.filter(function(pr){return pr.kind!=='lavoro'});
-  body='<div class="row" style="justify-content:space-between"><h1>'+(B.date===todayStr()?'Oggi, '+dlong(B.date):dlong(B.date))+'</h1><span class="row" style="gap:6px"><button class="mini on" data-xopen="1">＋ Lavoro extra</button><input type="date" id="bdate" value="'+B.date+'" style="width:auto;padding:8px 10px;font-size:14px"></span></div>'+(B.xform?formExtra(B):'')+dsCard(B)+riepGiorno(B.date,work.length,closed,work.filter(function(pr){var t=stOf(pr);return t==='doing'||t==='over'}).length,(B.segn||[]).filter(function(s){return s.created_at&&dstr(new Date(s.created_at))===B.date}).length)+'<div class="stat"><div><b>'+closed+'/'+work.length+'</b><span>passaggi chiusi</span></div><div><b style="'+(over?'color:var(--bad)':'')+'">'+over+'</b><span>oltre il tempo</span></div><div><b>'+Object.keys(spesa).length+'</b><span>prodotti da comprare</span></div><div><b>'+B.segn.length+'</b><span>segnalazioni aperte</span></div>'+(isAdmin()?(function(){var tot=0,nc=0;work.forEach(function(pr){var k=costoPass(pr,byProg[pr.id]);if(k&&k.chiuso){tot+=k.costo;nc++;}});return '<div><b>'+eur(tot)+'</b><span>costo personale ('+nc+' chiusi) · solo admin</span></div>';})():'')+'</div>'+
+  body='<div class="row" style="justify-content:space-between"><h1>'+(B.date===todayStr()?'Oggi, '+dlong(B.date):dlong(B.date))+'</h1><span class="row" style="gap:6px"><button class="mini on" data-xopen="1">＋ Lavoro extra</button><input type="date" id="bdate" value="'+B.date+'" style="width:auto;padding:8px 10px;font-size:14px"></span></div>'+(B.xform?formExtra(B):'')+sgrCard(B)+dsCard(B)+sgrAdmin(B)+riepGiorno(B.date,work.length,closed,work.filter(function(pr){var t=stOf(pr);return t==='doing'||t==='over'}).length,(B.segn||[]).filter(function(s){return s.created_at&&dstr(new Date(s.created_at))===B.date}).length)+'<div class="stat"><div><b>'+closed+'/'+work.length+'</b><span>passaggi chiusi</span></div><div><b style="'+(over?'color:var(--bad)':'')+'">'+over+'</b><span>oltre il tempo</span></div><div><b>'+Object.keys(spesa).length+'</b><span>prodotti da comprare</span></div><div><b>'+B.segn.length+'</b><span>segnalazioni aperte</span></div>'+(isAdmin()?(function(){var tot=0,nc=0;work.forEach(function(pr){var k=costoPass(pr,byProg[pr.id]);if(k&&k.chiuso){tot+=k.costo;nc++;}});return '<div><b>'+eur(tot)+'</b><span>costo personale ('+nc+' chiusi) · solo admin</span></div>';})():'')+'</div>'+
   bannerServ(work,stOf,B)+(offs.length?'<div class="row" style="flex-wrap:wrap;gap:6px">'+offs.map(function(pr){return '<span class="pill '+(pr.kind==='riposo'?'blue':'viola')+'">'+esc(pr.profiles?pr.profiles.name:'')+': '+KINDS[pr.kind]+'</span>'}).join('')+'</div>':'')+
   manOggi(manL,byProg,B)+(B.rich&&B.rich.length?'<button class="card" data-rtab="1" style="display:block;width:100%;text-align:left;border:2px solid var(--warn);cursor:pointer"><b>📝 '+(B.rich.length===1?'1 richiesta di un cliente':B.rich.length+' richieste dei clienti')+' da guardare</b><br><span class="note">Tocca per aprirle (Segnalazioni).</span></button>':'')+(function(){if(!work.length)return '<div class="card list">';var g={},ord=[];work.forEach(function(pr){var k=pr.profiles?pr.profiles.name:'Non assegnato';if(!g[k]){g[k]=[];ord.push(k);}g[k].push(pr);});ord.sort(function(a,b){return a==='Non assegnato'?1:b==='Non assegnato'?-1:a.localeCompare(b)});var rowFn=function(pr){var st=stOf(pr),p=byProg[pr.id];return '<button class="it apt" data-viewpass="'+pr.id+'" style="width:100%;text-align:left"><span class="row"><span class="dot '+st+'"></span>'+covThumb(pr.apt_id)+'<span><b>'+esc(pr.apartments.name)+'</b><br><span style="color:var(--mute);font-size:13px">'+(pr.start_time?'ore '+hmt(pr.start_time)+' · ':'')+(isServ(pr.apartments)?esc(pr.note||''):'check-in '+hmt(pr.checkin||'15:00'))+'</span></span></span><span style="text-align:right"><span class="pill '+(st==='done'?'ok':st==='over'?'bad':st==='doing'?'warn':'grey')+'">'+(st==='done'?'chiuso '+hm(p.closed_at)+' · '+fmt(durMin(p)):st==='over'?'⏰ oltre di '+fmt(elapsedMin(p)-maxOf(pr,p)):st==='doing'?'in corso da '+hm(p.started_at):'da fare')+'</span>'+(p?'<br><span class="note">'+(Object.keys(p.checklist||{}).filter(function(k){return p.checklist[k]}).length)+'/'+chkOf(pr.apartments).reduce(function(a,r){return a+r.items.length},0)+' voci · tocca per aprire'+(lontano(p.start_dist_m,p.start_acc)||lontano(p.end_dist_m,p.end_acc)?' · <b style="color:var(--bad)">📍 lontano</b>':'')+(p.bianch_lasciati!=null?' · 🧺 '+p.bianch_lasciati:'')+'</span>':'')+'</span></button>';};return ord.map(function(k){var L=g[k].sort(function(a,b){return (a.ord||0)-(b.ord||0)});var ch=L.filter(function(pr){return stOf(pr)==='done'}).length;var min=L.reduce(function(x,pr){return x+((pr.apartments&&pr.apartments.max_min)||90)},0);return '<div class="card list"><div class="row" style="justify-content:space-between;padding:2px 0 6px"><h2 style="margin:0">'+esc(k)+'</h2><span class="row" style="gap:8px"><span class="note">'+ch+'/'+L.length+' chiusi · '+fmt(min)+' previsti</span>'+(isBoss()&&L[0].user_id&&L.length>1?'<button class="mini" data-giro="'+L[0].user_id+'" title="Ordine con meno km">🧭 Giro</button>':'')+(isBoss()&&L[0].user_id?'<button class="mini" data-actas="'+L[0].user_id+'" title="Apri, compila e chiudi al posto suo">Fai tu</button>':'')+'</span></div>'+(B.giro&&L[0].user_id&&B.giro.uid===L[0].user_id?giroCard(B.giro):'')+L.map(rowFn).join('')+'</div>'}).join('')+'<div class="card list" style="display:none">';})()+(work.length?'':vuoto('calendario','Nessun appartamento in programma per questa data. Usa l’Agenda per assegnare.'))+'</div>';}
  if(tab==='spesa'){title='Spesa';var ks=Object.keys(spesa);body='<h1>Lista della spesa</h1>'+(ks.length?'<div class="card list">'+ks.map(function(k){return '<div class="it"><span><b>'+esc(k)+'</b><br><span style="color:var(--mute);font-size:13px">'+esc(spesa[k].join(', '))+'</span></span><span class="pill warn">×'+spesa[k].length+'</span></div>';}).join('')+'</div>':'<div class="card">Nessun prodotto segnato per '+dlong(B.date)+'.</div>');}
@@ -1850,6 +1891,7 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.sgrturno){S.boss.sgrTurno=d.sgrturno;render();return;}
  if(d.dsopen){S.boss.dsOpen=!S.boss.dsOpen;S.boss.dsSel=null;render();return;}
  if(d.rpsegn){if(isClient()){S.cl.tab='segn';S.cl.sgOpen={nuo:true};}else{S.boss.tab='segn';S.boss.sgOpen='nuo';S.view='boss';}render();window.scrollTo(0,0);return;}
  if(d.bsgo){S.boss.sgOpen=S.boss.sgOpen===d.bsgo?null:d.bsgo;render();return;}
@@ -2117,6 +2159,9 @@ app.addEventListener('input',function(e){if(e.target.id==='cq'&&S.cl){S.cl.cq=e.
 app.addEventListener('change',async function(e){
  var t=e.target,d=t.dataset;
  try{
+ if(d.sgrv){await sgrSalva(d.sgrv,{fatto_at:t.checked?new Date().toISOString():null});var bx=t.closest('.sgrv');if(bx)bx.classList.toggle('ok',t.checked);var sm=document.querySelector('.sgrc .sght small');if(sm){var nf=(S.boss.sgr||[]).filter(function(x){return x.user_id===S.user.id&&x.turno===sgrTurno()&&x.fatto_at}).length;sm.textContent=nf+' su '+SGR_N+' fatte · si salva da sola';var bar=document.querySelector('.sgrc .rpb i');if(bar)bar.style.width=Math.round(nf/SGR_N*100)+'%';}return;}
+ if(d.sgrn){var nv=t.value===''?null:Math.max(0,parseInt(t.value,10)||0);await sgrSalva(d.sgrn,{numero:nv});toast('Salvato');return;}
+ if(d.sgrnota){await sgrSalva(d.sgrnota,{nota:t.value.trim()||null});toast('Riepilogo salvato');return;}
  if(t.id==='bdate'){S.boss.date=t.value;await loadBoss();render();return;}
  if(t.id==='cdate'&&S.cl){S.cl.date=t.value||todayStr();S.cl.det=null;await loadClient();render();return;}
  if(t.id==='gzone'){S.boss.gzone=t.value;render();return;}
