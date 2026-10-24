@@ -1535,7 +1535,8 @@ function festaHtml(){var F=S.festa;if(!F)return '';var c='';for(var i=0;i<26;i++
   (F.next?'<div class="fnext"><span>Prossimo appartamento</span>'+covThumb(F.nextApt)+'<b data-notr="1">'+esc(F.next)+'</b></div>':'<div class="fnext"><span>Hai finito tutto per oggi!</span></div>')+'<button class="btn acc" data-festaok="1">Avanti</button></div></div>';}
 function vuoto(ic,txt){return '<div class="card vuoto">'+mIco(ic,'vic')+'<p>'+txt+'</p></div>';}
 // 23/10: «Portami lì» e giro della giornata sul navigatore (Google Maps, in auto)
-function navDove(a){a=a||{};return (a.lat&&a.lon)?(a.lat+','+a.lon):((a.address||a.name||'')+(/bergamo|milano|orio|treviolo|lallio|manerba|mapello|bottanuco/i.test(a.address||'')?'':', Bergamo'));}
+// 24/10: prima l'indirizzo scritto (con le coordinate Google mostrava nomi di attività vicine, es. «Casa LALLA»); le coordinate solo se manca l'indirizzo
+function navDove(a){a=a||{};if(a.address)return a.address+(/bergamo|milano|orio|treviolo|lallio|manerba|mapello|bottanuco|\(bg\)|\(bs\)/i.test(a.address)?'':', Bergamo');return (a.lat&&a.lon)?(a.lat+','+a.lon):((a.name||'')+', Bergamo');}
 function navUrl(a){return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(navDove(a));}
 function giroUrl(L){var P=[];L.forEach(function(pr){var d=navDove(pr.apartments);if(P.indexOf(d)<0)P.push(d)});if(!P.length)return '';var dest=P[P.length-1],w=P.slice(0,-1).slice(0,9);return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(dest)+(w.length?'&waypoints='+encodeURIComponent(w.join('|')):'');}
 function giroBtn(L){var rest=(L||[]).filter(function(pr){var p=passOf(pr);return pr.apartments&&!(p&&p.closed_at)});if(!rest.length)return '';return '<a class="btn ghost navbtn" href="'+giroUrl(rest)+'" target="_blank" rel="noopener">'+mIco('giro','mi')+' Giro di oggi sul navigatore</a>';}
