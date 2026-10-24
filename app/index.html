@@ -1248,7 +1248,9 @@ async function caricaAptB(id){var B=S.boss;B.aptDati=null;render();
 function vAptB(B){var a=(B.apts||[]).filter(function(x){return x.id===B.aptPage})[0]||{},D=B.aptDati,oggi=todayStr();
  var nome=function(uid){var o=(B.ops||[]).filter(function(x){return x.id===uid})[0];return o?o.name:''};
  var top='<div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><h1 style="margin:0">'+esc(a.name||'')+'</h1><span class="row" style="gap:6px"><button class="mini" data-editapt="'+a.id+'">✏️ Modifica scheda</button><button class="mini" data-baptx="1">← Appartamenti</button></span></div>'+covBig(a.id)+
-  '<p class="note" style="margin:6px 0 10px">'+esc(a.address||'')+(a.client?' · '+esc(a.client):'')+(a.guests?' · '+a.guests+' ospiti':'')+' · tempo massimo '+fmt(a.max_min||90)+(a.address?' · <a href="'+navUrl(a)+'" target="_blank" rel="noopener">Portami lì</a>':'')+'</p>';
+  '<p class="note" style="margin:6px 0 10px">'+esc(a.address||'')+(a.client?' · '+esc(a.client):'')+(a.guests?' · '+a.guests+' ospiti':'')+' · tempo massimo '+fmt(a.max_min||90)+(a.address?' · <a href="'+navUrl(a)+'" target="_blank" rel="noopener">Portami lì</a>':'')+'</p>'+
+  // 24/10 (Karim): codice / accesso in evidenza
+  '<div class="card" style="display:flex;gap:12px;align-items:flex-start;border-left:4px solid var(--acc)">'+mIco('chiavi','sghi')+'<div style="flex:1;min-width:0"><small class="note" style="font-weight:700">Codice e accesso'+(a.access_updated_at?' · aggiornato il '+new Date(a.access_updated_at).fmD({day:'numeric',month:'short',year:'numeric'}):'')+'</small><div style="white-space:pre-wrap;font-size:16px;margin-top:2px">'+(a.access?esc(a.access):'<span class="note">Non inserito: aggiungilo da «Modifica scheda».</span>')+'</div></div></div>';
  if(!D||D.id!==a.id)return top+'<div class="card"><span class="spin"></span> carico…</div>';
  var chiuso=function(x){return x.pas.some(function(q){return q.closed_at})};
  var pul=D.righe.filter(function(x){return !x.segnalazione_id}),man=D.righe.filter(function(x){return x.segnalazione_id});
