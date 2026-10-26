@@ -529,6 +529,9 @@ table.crut tr.tot td{border-top:2px solid var(--ink,#111);background:var(--tap)}
 /* 24/10 contenuto della borsa */
 .bsd{font-size:13px;margin-top:3px;line-height:1.35}.bsd.arm{color:var(--warn)}.bst{font-weight:700;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.03em;margin-right:4px}
 .bsmag{display:flex;flex-wrap:wrap;gap:6px 14px}.bsmag span{font-size:14px}.bsmag b{font-size:16px}
+
+/* 26/10 agenda del cliente */
+.mgrid .b.cok{background:var(--ok-bg);color:var(--ok)}
 </style>
 </head>
 <body>
@@ -1324,6 +1327,31 @@ function bsOpCard(){if(isBoss())return '';var c=S._bsMie;if(!c||Date.now()-c.t>3
  return gs.map(function(d){var n0=L.filter(function(x){return x.day===d}).length,okk=L.filter(function(x){return x.day===d&&x.pronta_at}).length;return '<button class="card rapban" data-bsop="'+d+'">'+mIco('biancheria','sghi')+'<span style="flex:1"><b>'+bsT('tit')+' · '+(d===todayStr()?bsT('oggi'):bsT('domani'))+'</b><br><span class="note">'+okk+'/'+n0+' '+bsT('pronta').toLowerCase()+'</span></span><span class="sgar">›</span></button>'}).join('');}
 function vBorseOp(){var K=S.bsOp=S.bsOp||{};var body='<div class="row" style="justify-content:space-between"><h1 style="margin:0">'+bsT('tit')+'</h1><button class="mini" data-go="oggi">←</button></div>'+borseLista(K,false);
  return topbar(bsT('tit'),null,'<button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button>')+shellOp('oggi',body,'narrow');}
+// 26/10: agenda del cliente (mese): pulizie in programma e fatte dei suoi appartamenti
+async function caricaCalCl(m){var C=S.cl,r=meseRange(m);C.cal={m:m,rows:null,sel:(C.cal&&C.cal.m===m)?C.cal.sel:null};render();
+ try{var q=await sb.from('program').select('id,day,guests,note,segnalazione_id,nascosto_cliente,giorno_cliente,apt_id,apartments(name,size)').eq('kind','lavoro').not('apt_id','is',null).gte('day',addDays(r[0],-7)).lte('day',addDays(r[1],7)).order('day');
+  var L=(q.data||[]).filter(function(x){return !isServ(x.apartments||{})&&(!x.nascosto_cliente||x.giorno_cliente)});var ids=L.map(function(x){return x.id});
+  var ps=ids.length?await sb.from('passaggi').select('program_id,closed_at').in('program_id',ids):{data:[]};var ch={};(ps.data||[]).forEach(function(p0){if(p0.closed_at)ch[p0.program_id]=1});
+  L=L.filter(function(x){return !x.giorno_cliente||ch[x.id]}).map(function(x){return Object.assign({},x,{d:x.giorno_cliente||x.day,fatto:!!ch[x.id]})}).filter(function(x){return x.d>=r[0]&&x.d<=r[1]});
+  C.cal.rows=L;}catch(e){C.cal.rows=[];logErr('agenda-cliente',e);}render();}
+function vCalCl(C){var m=(C.cal&&C.cal.m)||meseDi(todayStr());if(!C.cal||C.cal.m!==m){setTimeout(function(){caricaCalCl(m)},0);return '<div class="card"><span class="spin"></span> carico…</div>';}
+ var K=C.cal,r=meseRange(m),oggi=todayStr();
+ var h='<div class="agh"><button class="rnd" data-ccalm="-1">‹</button><h1>'+mIco('calendario','hic')+'<span style="text-transform:capitalize">'+meseNome(m)+'</span></h1><button class="rnd" data-ccalm="1">›</button>'+(m!==meseDi(oggi)?'<button data-ccalm="0">Oggi</button>':'')+'</div>';
+ if(!K.rows)return h+'<div class="card"><span class="spin"></span> carico…</div>';
+ var by={};K.rows.forEach(function(x){(by[x.d]=by[x.d]||[]).push(x)});
+ var nome=function(x){return String((x.apartments||{}).name||'').replace(/^BiGi /,'')};
+ var start=r[0],dw=(pdate(start).getDay()+6)%7,cells='';for(var i=0;i<dw;i++)cells+='<span class="d off"></span>';
+ for(var d=start;d<=r[1];d=addDays(d,1)){var L=by[d]||[],wd=pdate(d).getDay(),ok=L.filter(function(x){return x.fatto}).length;
+  cells+='<button class="d'+(wd===0||wd===6?' we':'')+(d===oggi?' today':'')+(d===K.sel?' sel':'')+'" data-ccald="'+d+'"><span class="dtop"><span class="n">'+pdate(d).getDate()+'</span></span>'+
+   (L.length?(L.length<=2?L.map(function(x){return '<span class="b'+(x.fatto?' cok':'')+'">'+(x.fatto?'✓ ':'')+esc(nome(x))+'</span>'}).join(''):'<span class="wc">'+mIco('pulizia')+'<b>'+L.length+'</b></span>'+(ok?'<span class="b cok">✓ '+ok+'</span>':'')):'')+'</button>';}
+ h+='<div class="mgrid">'+GIORNI.map(function(g,gi){return '<span class="h'+(gi>4?' we':'')+'">'+g+'</span>'}).join('')+cells+'</div>';
+ var tot=K.rows.length,fatti=K.rows.filter(function(x){return x.fatto}).length;
+ h+='<p class="note" style="margin:8px 0">'+(tot?tot+(tot===1?' pulizia':' pulizie')+' nel mese · '+fatti+' fatte · '+(tot-fatti)+' in programma':'Nessuna pulizia in programma in questo mese.')+'</p>';
+ var giorni=Object.keys(by).sort();if(K.sel)giorni=giorni.filter(function(g){return g===K.sel});
+ if(K.sel&&!by[K.sel])h+='<div class="card note">'+dlong(K.sel)+': nessuna pulizia. <button class="mini" data-ccald="'+K.sel+'">Tutto il mese</button></div>';
+ h+=giorni.map(function(g){return '<div class="card"><div class="row" style="justify-content:space-between;gap:8px"><h2 style="margin:0;text-transform:capitalize">'+dlong(g)+'</h2><button class="mini" data-ccalv="'+g+'">Vedi il giorno ›</button></div>'+
+  by[g].map(function(x){return '<div class="acr">'+covThumb(x.apt_id)+'<span style="flex:1;min-width:0"><b>'+esc((x.apartments||{}).name||'')+'</b>'+(x.segnalazione_id?' <span class="pill grey">manutenzione</span>':'')+(x.note?'<br><span class="note">'+esc(String(x.note).replace(/Pulizia periodica BiGi \(giro \d+\) — PARTI COMUNI:[\s\S]*$/,'Pulizia periodica delle parti comuni (cucina, bagni, zone comuni)'))+'</span>':'')+'</span><span class="pill '+(x.fatto?'ok':g<oggi?'warn':'grey')+'">'+(x.fatto?'Fatto':g<oggi?'Da chiudere':'In programma')+'</span></div>'}).join('')+'</div>'}).join('');
+ return h;}
 function vAcq(B){var A=B.acq=B.acq||{};A.m=A.m||meseDi(todayStr());A.f=A.f||'tutti';var F=B.af||{},g=function(k,d){return F[k]!=null?F[k]:(d||'')};
  var resp=(B.ops||[]).filter(function(o){return o.active&&(o.role==='boss'||o.role==='admin')&&o.username!=='nexus'}).sort(function(a,b){return a.name<b.name?-1:1});
  var clienti=[];(B.apts||[]).forEach(function(a){if(a.active&&a.client&&clienti.indexOf(a.client)<0&&!isServ(a))clienti.push(a.client)});clienti.sort();
@@ -1378,10 +1406,11 @@ function clSegnLista(key,tit,ic,sub,L,vuoto,cls){var C=S.cl,op=!!(C.sgOpen&&C.sg
 function quasiFinito(p2){try{var pr=S.apt;if(!pr||!p2||p2.closed_at||p2._qf||!pr.apartments||isServ(pr.apartments)||pr.nascosto_cliente)return;var have=S.photos[p2.id]||{};
  var manca=fotoDi(pr,p2).filter(function(k){return !have[k]});if(manca.length===1&&manca[0]==='Chiavi nel lucchetto'){p2._qf=true;sb.rpc('avvisa_quasi_finito',{p_passaggio:p2.id}).then(function(r){if(r.error)logErr('quasi-finito',r.error);});}}catch(e){}}
 function clCardSegn(s,conApp){return '<div class="card" id="sg-'+s.id+'"><div class="row"><span class="pill '+(s.status==='chiusa'?'ok':s.status==='presa'?'warn':'bad')+'">'+esc(s.type)+'</span><span style="margin-left:auto;color:var(--mute);font-size:13px">'+new Date(s.created_at).fmD()+' '+hm(s.created_at)+'</span></div>'+(conApp&&s.apartments?'<p style="margin:8px 0 0"><b>'+esc(s.apartments.name)+'</b></p>':'')+'<p style="margin:6px 0 0">'+esc(s.text||'(solo foto)')+'</p><p class="note" style="margin:4px 0 0">'+(s.status==='chiusa'?(s.chiusa_da_cliente?'<b style="color:var(--ok)">'+em('fatto')+' Fatto da '+esc(clSigla())+'</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():''):'<b style="color:var(--ok)">'+em('fatto')+' Fatto da FM Coop</b>'+(s.chiusa_at?' il '+new Date(s.chiusa_at).fmD():'')):s.status==='presa'?'Presa in carico da FM':'Aperta')+'</p>'+(s.chiusa_da_cliente&&s.chiusa_nota?'<p class="note" style="margin:2px 0 0">Nota: '+esc(s.chiusa_nota)+'</p>':'')+(s.status!=='chiusa'?'<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="mini" data-csist="'+s.id+'">'+em('fatto')+' Fatto da '+esc(clSigla())+'</button>'+(s.fm_chiesto_at?'':'<button class="mini" data-cfm="'+s.id+'">🔧 Fate voi FM</button>')+'</div>':'')+clFotoSeg(s)+fmInfo(s,true)+pvBox(s,true)+lavFatto(s)+'</div>';}
-var CL_NAV=[['oggi','🏠','Appartamenti'],['rich','📝','Richieste'],['segn','📸','Segnalazioni'],['acq','🧾','Acquisti'],['bia','🛏','Biancheria'],['codici','🏠','Schede'],['conto','💶','Conto']];
+var CL_NAV=[['oggi','🏠','Appartamenti'],['agenda','📅','Agenda'],['rich','📝','Richieste'],['segn','📸','Segnalazioni'],['acq','🧾','Acquisti'],['bia','🛏','Biancheria'],['codici','🏠','Schede'],['conto','💶','Conto']];
 function vClient(){var C=S.cl,body='',title='';if(!clEcon()&&C.tab==='conto')C.tab='oggi';var pvN=(C.segn||[]).filter(function(s){return s.prev_stato==='proposto'});
  if(S._apriRap){S._apriRap=0;C.tab='rapp';setTimeout(function(){caricaRap(rapLunScorso())},0);}
- if(C.tab==='rapp'){title='Rapporto settimanale';body=vRapp(C);}
+ if(C.tab==='agenda'){title='Agenda';body=vCalCl(C);}
+ else if(C.tab==='rapp'){title='Rapporto settimanale';body=vRapp(C);}
  else if(C.tab==='conto'){title='Conto';body=vConto(C);}
  else if(C.tab==='codici'&&C.aptPage){title='Appartamento';body=vAptCl(C);}
  else if(C.tab==='codici'){title='Schede e codici';if(!clApts(C)){body='<div class="card"><span class="spin"></span> carico…</div>';}
@@ -1410,7 +1439,7 @@ function vClient(){var C=S.cl,body='',title='';if(!clEcon()&&C.tab==='conto')C.t
  if(C.tab==='oggi')body=rapBanner(C)+body;
  if(pvN.length&&C.tab!=='segn')body='<button class="card" data-ctab="segn" style="display:block;width:100%;text-align:left;border:2px solid var(--warn);cursor:pointer"><b>💶 '+(pvN.length===1?'1 preventivo da approvare':pvN.length+' preventivi da approvare')+'</b><br><span class="note">Tocchi qui per vederlo e rispondere.</span></button>'+body;
  if(!avvisiSi()&&!avvNonOra())body='<div class="avstrip">'+mIco('notifiche','avi')+'<span class="avt"><b>Attivi le notifiche</b><small>Preventivi, lavori fatti e avviso «quasi finito».'+(/iPhone|iPad/.test(navigator.userAgent)?' Su iPhone prima: Condividi › «Aggiungi alla schermata Home».':'')+'</small></span><button class="mini acc" data-avvisi="1">Attiva</button><button class="avx" data-avvno="1" title="Non ora">✕</button></div>'+body;
- return topbar(title,null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?ico('bell'):ico('belloff'))+'</button><button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button><button data-logout="1">Esci</button>')+shellWith(clNav(),C.tab,'ctab',body,(C.tab==='oggi'||C.tab==='conto'||C.tab==='segn')?'narrow clw':'narrow');
+ return topbar(title,null,'<button data-avvisi="1" title="Notifiche su questo dispositivo">'+(avvisiSi()?ico('bell'):ico('belloff'))+'</button><button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button><button data-logout="1">Esci</button>')+shellWith(clNav(),C.tab,'ctab',body,(C.tab==='oggi'||C.tab==='conto'||C.tab==='segn'||C.tab==='agenda')?'narrow clw':'narrow');
 }
 // ===== LAYOUT =====
 function topbar(title,left,right){return '<div class="top">'+(left||'<img class="brand" src="../assets/fm-mark-bianco.png?v=2" alt="FM Coop">')+'<b>'+title+'</b>'+(right||'')+'</div>';}
@@ -2149,6 +2178,9 @@ app.addEventListener('click',async function(e){
  var b=e.target.closest('button');if(!b)return;var d=b.dataset;
  try{
  if(d.festaok){S.festa=null;render();return;}
+ if(d.ccalm!==undefined){var cm0=(S.cl.cal&&S.cl.cal.m)||meseDi(todayStr()),nn=Number(d.ccalm),dd0=new Date(Number(cm0.slice(0,4)),Number(cm0.slice(5,7))-1+nn,1);caricaCalCl(nn===0?meseDi(todayStr()):dd0.getFullYear()+'-'+pad2(dd0.getMonth()+1));return;}
+ if(d.ccald){S.cl.cal.sel=S.cl.cal.sel===d.ccald?null:d.ccald;render();return;}
+ if(d.ccalv){S.cl.tab='oggi';S.cl.date=d.ccalv;S.cl.det=null;S.cl.aptPage=null;await loadClient();render();window.scrollTo(0,0);return;}
  if(d.lsegapri){var lk=d.lsegapri,mS=/^#segn-(\d+)$/.exec(lk);if(mS){S.boss.tab='segn';S._apriSegn=mS[1];render();apriSegnPend();return;}if(lk==='dasistemare'){S.boss.tab='oggi';S.boss.dsOpen=true;render();var dsx=document.querySelector('[data-dsopen]');if(dsx)dsx.scrollIntoView({block:'start'});return;}var mT=/^tab:([a-z]+)$/.exec(lk);if(mT){S.boss.tab=mT[1];render();window.scrollTo(0,0);return;}toast(lk);return;}
  if(d.bsday){var KB=isBoss()&&!S.actAs?(S.boss.borse=S.boss.borse||{}):(S.bsOp=S.bsOp||{});caricaBorse(KB,d.bsday);return;}
  if(d.bsop){S.view='borse';window.scrollTo(0,0);caricaBorse(S.bsOp=S.bsOp||{},d.bsop);return;}
