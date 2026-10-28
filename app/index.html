@@ -567,8 +567,11 @@ var SERVIZI={
 };
 // Consegne (codice che inizia con «cons_», es. cons_lavanda): un'azione sola, niente check-list, una foto. Cosa portare lo dice la nota del giorno.
 SERVIZI.consegna={ico:'📦',lock:false,costo:false,check:[],photos:['Consegna fatta'],ask:'Inizi adesso la consegna?',tit:'Consegna',sub:'Porta quello che c’è scritto nella nota, poi fai la foto.',fnote:'Fai la foto di quello che hai lasciato in appartamento. Senza la foto la consegna non si chiude.',ftit:null};
+// 28/10 (Karim): stanza su richiesta (BiGi) = voce separata, codice «stanza_<casa>», si paga a ore (apt_costi.prezzo_ora)
+SERVIZI.stanza={ico:'🛏',lock:false,costo:true,check:[{room:'Stanza',items:['Sistemare il letto come chiede il cliente','Spolverare mobili, mensole e davanzali','Pulire vetri, porta e maniglie','Aspirare e lavare il pavimento','Svuotare il cestino']}],photos:['Stanza'],
+ ask:'Inizi adesso la pulizia della stanza?',tit:'Pulizia della stanza',sub:'Premi «Inizia» quando entri nella stanza e chiudi appena hai finito: la stanza si paga a ore.',fnote:'Fai la foto della stanza pulita. Senza la foto il passaggio non si chiude.',ftit:null};
 function isServ(a){return !!(a&&a.size==='servizio');}
-function serv(a){return isServ(a)?(SERVIZI[a.code]||(/^cons_/.test(a.code||'')?SERVIZI.consegna:SERVIZI.spazzcor)):null;}
+function serv(a){return isServ(a)?(SERVIZI[a.code]||(/^cons_/.test(a.code||'')?SERVIZI.consegna:/^stanza_/.test(a.code||'')?SERVIZI.stanza:SERVIZI.spazzcor)):null;}
 function chkOf(a){return isServ(a)?serv(a).check:CHECK;}
 function phoOf(a){return isServ(a)?serv(a).photos:PHOTOS;}
 // foto del passaggio = quelle standard + quelle chieste solo per quel giorno (program.foto_extra); la foto delle chiavi resta l'ultima
@@ -1329,8 +1332,8 @@ function vBorseOp(){var K=S.bsOp=S.bsOp||{};var body='<div class="row" style="ju
  return topbar(bsT('tit'),null,'<button data-reload="1" title="Aggiorna">'+ico('aggiorna')+'</button>')+shellOp('oggi',body,'narrow');}
 // 26/10: agenda del cliente (mese): pulizie in programma e fatte dei suoi appartamenti
 async function caricaCalCl(m){var C=S.cl,r=meseRange(m);C.cal={m:m,rows:null,sel:(C.cal&&C.cal.m===m)?C.cal.sel:null};render();
- try{var q=await sb.from('program').select('id,day,guests,note,segnalazione_id,nascosto_cliente,giorno_cliente,apt_id,apartments(name,size)').eq('kind','lavoro').not('apt_id','is',null).gte('day',addDays(r[0],-7)).lte('day',addDays(r[1],7)).order('day');
-  var L=(q.data||[]).filter(function(x){return !isServ(x.apartments||{})&&(!x.nascosto_cliente||x.giorno_cliente)});var ids=L.map(function(x){return x.id});
+ try{var q=await sb.from('program').select('id,day,guests,note,segnalazione_id,nascosto_cliente,giorno_cliente,apt_id,apartments(name,size,code)').eq('kind','lavoro').not('apt_id','is',null).gte('day',addDays(r[0],-7)).lte('day',addDays(r[1],7)).order('day');
+  var L=(q.data||[]).filter(function(x){return (!isServ(x.apartments||{})||/^stanza_/.test((x.apartments||{}).code||''))&&(!x.nascosto_cliente||x.giorno_cliente)});var ids=L.map(function(x){return x.id});
   var ps=ids.length?await sb.from('passaggi').select('program_id,closed_at').in('program_id',ids):{data:[]};var ch={};(ps.data||[]).forEach(function(p0){if(p0.closed_at)ch[p0.program_id]=1});
   L=L.filter(function(x){return !x.giorno_cliente||ch[x.id]}).map(function(x){return Object.assign({},x,{d:x.giorno_cliente||x.day,fatto:!!ch[x.id]})}).filter(function(x){return x.d>=r[0]&&x.d<=r[1]});
   C.cal.rows=L;}catch(e){C.cal.rows=[];logErr('agenda-cliente',e);}render();}
