@@ -530,6 +530,29 @@ table.crut tr.tot td{border-top:2px solid var(--ink,#111);background:var(--tap)}
 .bsd{font-size:13px;margin-top:3px;line-height:1.35}.bsd.arm{color:var(--warn)}.bst{font-weight:700;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.03em;margin-right:4px}
 .bsmag{display:flex;flex-wrap:wrap;gap:6px 14px}.bsmag span{font-size:14px}.bsmag b{font-size:16px}
 
+/* 29/10 Halloween (Karim): dal 29 al 31 ottobre, tema arancione con decorazioni per tutti */
+html.hw{--acc:#f07a1a;--tap:#fff0e3}
+html.hw body{background:#fbf3ea url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><g fill='none' stroke='%23c9b8a6' stroke-width='1'><path d='M0 0L120 40M0 0L90 90M0 0L40 120M0 0L120 0M0 0L0 120'/><path d='M30 0Q26 10 28 9Q24 22 0 30'/><path d='M60 0Q54 20 56 18Q48 44 0 60'/><path d='M92 0Q84 30 86 27Q72 66 0 92'/></g></svg>") no-repeat 0 0/150px 150px fixed}
+html.hw .top{background:linear-gradient(90deg,#1d1028,#3a1a3f 60%,#5a2414);box-shadow:inset 0 -3px 0 #f07a1a}
+html.hw .top::after{content:"";position:absolute;left:0;right:0;bottom:-15px;height:16px;pointer-events:none;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='16'><path d='M0 1Q28 6 56 1' stroke='%23333' fill='none'/><path d='M4 2L14 3.6L9 15Z' fill='%23f07a1a'/><path d='M18 3.6L28 4L23 15Z' fill='%23111214'/><path d='M32 4L42 3.6L37 15Z' fill='%237a3fa0'/><path d='M46 3L54 1.6L50 13Z' fill='%23111214'/></svg>") repeat-x 0 0/56px 16px}
+html.hw .nav button.on{background:#fff0e3;color:#b4520a}
+html.hw .btn.acc{background:#f07a1a;color:#fff}
+.hwbats{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+.hwbats i{position:absolute;width:44px;height:22px;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'><path d='M32 9c1-3 3-6 3-6l1 5c3 0 5 1 6 3 5-4 11-6 22-3-6 2-9 6-9 12-3-3-8-3-10 0-2-2-5-3-8-1-2 1-3 4-5 8-2-4-3-7-5-8-3-2-6-1-8 1-2-3-7-3-10 0 0-6-3-10-9-12 11-3 17-1 22 3 1-2 3-3 6-3l1-5s2 3 3 6z' fill='%232a1438'/></svg>") no-repeat center/contain;opacity:.75}
+.hwbats i:nth-child(1){top:90px;left:-60px;animation:hwvola 16s linear infinite}
+.hwbats i:nth-child(2){top:240px;left:-60px;width:30px;height:15px;animation:hwvola 22s linear 5s infinite}
+.hwbats i:nth-child(3){top:420px;left:-60px;width:36px;height:18px;animation:hwvola 19s linear 11s infinite}
+@keyframes hwvola{0%{transform:translate(0,0)}25%{transform:translate(28vw,-30px)}50%{transform:translate(55vw,20px)}75%{transform:translate(82vw,-20px)}100%{transform:translate(115vw,0)}}
+@media (prefers-reduced-motion:reduce){.hwbats{display:none}}
+.hwcard{position:relative;overflow:hidden;border-radius:16px;padding:16px 46px 16px 16px;color:#fff;background:linear-gradient(135deg,#2a1438 0%,#5b2346 45%,#e8661a 100%);box-shadow:0 6px 18px rgba(90,35,20,.25);display:flex;gap:14px;align-items:center}
+.hwcard .zu{font-size:46px;line-height:1;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35));animation:hwdondola 2.6s ease-in-out infinite}
+@keyframes hwdondola{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+.hwcard b{display:block;font-size:19px;font-weight:800;letter-spacing:.01em}
+.hwcard small{display:block;font-size:14px;line-height:1.4;opacity:.95;margin-top:3px}
+.hwcard .x{position:absolute;top:8px;right:8px;width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-size:16px;cursor:pointer}
+.hwcard .rag{position:absolute;right:-6px;bottom:-10px;font-size:54px;opacity:.16;transform:rotate(-12deg)}
+[dir=rtl] .hwcard{padding:16px 16px 16px 46px}[dir=rtl] .hwcard .x{right:auto;left:8px}
+
 /* 26/10 agenda del cliente */
 .mgrid .b.cok{background:var(--ok-bg);color:var(--ok)}
 </style>
@@ -1566,6 +1589,21 @@ function fIco(nome,cls){return '<img class="'+(cls||'mi')+'" src="icone/'+(FOTO_
 function mancaFoto(pr,p){if(!p||p.closed_at)return '';var F=fotoDi(pr),fatte=S.photos[p.id]||{},M=F.filter(function(k){return !fatte[k]});if(!M.length)return '';
  return '<div class="mfoto"><span class="mft">Mancano:</span>'+M.map(function(k){return '<button class="mfc" data-go="check">'+fIco(k)+'<span>'+esc(k)+'</span></button>'}).join('')+'</div>';}
 // festa a fine pulizia (solo le ragazze, non «Fai tu» dei responsabili)
+// 29/10 Halloween (Karim): tema arancione, pipistrelli e augurio per clienti e squadra, solo dal 29 al 31 ottobre 2026
+var HW={dal:'2026-10-29',al:'2026-10-31'};
+function halloween(){var t=todayStr();return (t>=HW.dal&&t<=HW.al)||window.HW_FORZA===true;}
+function hwChiuso(){try{return localStorage.getItem('fm_hw_chiuso')===todayStr()}catch(e){return false}}
+var HW_T={it:['Buon Halloween, %!','Dolcetto o scherzetto? Per te solo dolcetti 🍬 Grazie per il tuo lavoro, buona giornata da FM Coop!'],
+ en:['Happy Halloween, %!','Trick or treat? Only treats for you 🍬 Thank you for your work, have a great day from FM Coop!'],
+ si:['සුභ හැලොවීන්, %!','Trick or treat? ඔබට රසකැවිලි පමණයි 🍬 ඔබේ වැඩට ස්තූතියි, FM Coop වෙතින් සුභ දවසක්!'],
+ ar:['هالوين سعيد يا %!','حلوى أم خدعة؟ لك الحلوى فقط 🍬 شكراً على عملك، يوم سعيد من FM Coop!']};
+function hwCard(){if(!S.user||!S.profile||hwChiuso())return '';var tt,tx;
+ if(isClient()){tt='Buon Halloween!';tx='Dolcetto o scherzetto? Per voi solo dolcetti 🍬 Tutta la squadra di FM Coop vi augura un felice Halloween.';}
+ else{var T=HW_T[lg()||'it'],nm=nome1(S.profile.name||'');tt=nm?T[0].replace('%',nm):T[0].replace(', %','').replace(' يا %','');tx=T[1];}
+ return '<div class="hwcard" data-notr data-noemo><span class="zu">🎃</span><span><b>'+esc(tt)+'</b><small>'+esc(tx)+'</small></span><span class="rag">🕸️</span><button class="x" data-hwx="1" title="Chiudi">✕</button></div>';}
+function hwApplica(){var on=halloween();document.documentElement.classList.toggle('hw',on);var bt=document.getElementById('hwbats');
+ if(on&&!bt){bt=document.createElement('div');bt.id='hwbats';bt.className='hwbats';bt.innerHTML='<i></i><i></i><i></i>';document.body.appendChild(bt);}else if(!on&&bt)bt.remove();
+ if(!on)return;var m=app.querySelector('main'),c=hwCard();if(m&&c&&!m.querySelector('.hwcard'))m.insertBefore(frag(c),m.firstChild);}
 function festaHtml(){var F=S.festa;if(!F)return '';var c='';for(var i=0;i<26;i++)c+='<i style="left:'+((i*37)%100)+'%;animation-delay:'+((i%9)*0.12).toFixed(2)+'s;background:'+['#E0A63A','#2E8B57','#ffffff','#111214','#C98A00'][i%5]+'"></i>';
  return '<div class="festa"><div class="coriandoli">'+c+'</div><div class="fbox"><img class="fcoppa" src="icone/coppa.png" alt="" onerror="this.onerror=null;this.src=\'icone/fatto.png\'"><h1>Bravissima!</h1><p class="fnome" data-notr="1">'+esc(F.nome)+'</p><p class="note">Pulizia chiusa in <b data-notr="1">'+fmt(F.dur)+'</b></p>'+
   (F.next?'<div class="fnext"><span>Prossimo appartamento</span>'+covThumb(F.nextApt)+'<b data-notr="1">'+esc(F.next)+'</b></div>':'<div class="fnext"><span>Hai finito tutto per oggi!</span></div>')+'<button class="btn acc" data-festaok="1">Avanti</button></div></div>';}
@@ -2099,7 +2137,7 @@ function render(){
  if(!S.user||v==='login')h=vLogin();else if(v==='newpin')h=vNewPin();else if(isClient())h=vClient();else if(isBoss()&&!S.actAs)h=(S.boss.tab==='agenda')?vAgenda():vBoss();else if(v==='borse')h=vBorseOp();else if(v==='agenda')h=vAgenda();else if(v==='apts')h=vAptsOp();else if(v==='ore')h=vOre();else if(v==='aptinfo')h=vAptInfo();else if(v==='apt')h=vApt();else if(v==='check')h=vCheck();else if(v==='manca')h=vManca();else if(v==='segnala')h=vSegnala();else if(v==='parcheggio')h=vParcheggio();else if(v==='scheda')h=vScheda();else if(v==='schedaag')h=vSchedaAg();else h=vOggi();
  if(S.festa&&S.user&&!isClient())h+=festaHtml();
  app.replaceChildren(frag(h));if(S._apriSegn)setTimeout(apriSegnPend,0);
- traduci(app);emoIcone(app);
+ traduci(app);emoIcone(app);hwApplica();
  var nv=app.querySelector('.nav'),non=nv&&nv.querySelector('button.on');if(nv){var fn=function(){nv.classList.toggle('scorre',nv.scrollWidth>nv.clientWidth+4);nv.classList.toggle('fine',nv.scrollLeft+nv.clientWidth>=nv.scrollWidth-4)};if(non&&nv.scrollWidth>nv.clientWidth)nv.scrollLeft=Math.max(0,non.offsetLeft-(nv.clientWidth-non.offsetWidth)/2);nv.onscroll=fn;fn();}
  if(v==='check')loadPhotoThumbs();
  if(isBoss()&&!S.actAs&&S.boss.tab==='segn')loadSegnThumbs();
@@ -2222,6 +2260,7 @@ app.addEventListener('click',async function(e){
  if(d.reload){await refresh();return;}
  if(d.nseg!==undefined){var Tn=isClient()?S.cl:S.boss;Tn.nseg=d.nseg==='1';S._sfiles=[];S._stype=null;S._stext=null;S._sapt=null;render();if(Tn.nseg)window.scrollTo(0,0);return;}
  if(d.sdel!==undefined){(S._sfiles||[]).splice(Number(d.sdel),1);sRedraw();return;}
+ if(d.hwx){try{localStorage.setItem('fm_hw_chiuso',todayStr())}catch(e){}render();return;}
  if(d.avvno){try{localStorage.setItem('fm_avv_nonora',String(Date.now()+7*864e5))}catch(e){}render();return;}
  if(d.cscheda){S.cl.scheda=S.cl.scheda===Number(d.cscheda)?null:Number(d.cscheda);render();return;}
  if(d.cedit){S.cl.edit=Number(d.cedit);render();var tx=document.getElementById('cc_'+d.cedit);if(tx)tx.focus();return;}
