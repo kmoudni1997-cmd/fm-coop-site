@@ -1052,7 +1052,7 @@ async function loadClient(){var C=S.cl;
   sb.rpc('acquisti_cliente'),sb.rpc('biancheria_cliente'),sb.rpc('lavori_a_ore'),
   sb.from('conti_clienti').select('id,mese,stato,totale,dettaglio,note,scadenza,aggiornato').order('mese',{ascending:false}),
   clEcon()?sb.rpc('conto_in_corso'):Promise.resolve({data:null}),
-  caricaCopertine()]);
+  caricaCopertine(),sb.rpc('servizi_cliente',{p_day:C.date})]);
  var pr=R[0];if(pr.error)throw pr.error;var senzaApt=[];(pr.data||[]).forEach(function(x){if(x.apt_id&&!x.apartments){senzaApt.push(x.apt_id);if(CL_SERV_NOTI[x.apt_id])x.apartments=Object.assign({id:x.apt_id,size:'servizio',address:'Via Filippo Corridoni 33, Bergamo',max_min:30},CL_SERV_NOTI[x.apt_id]);}});var rowsAll=manWrap((pr.data||[]).filter(function(x){return x.giorno_cliente?x.giorno_cliente===C.date:(x.day===C.date&&!x.nascosto_cliente)}));C.manDay=rowsAll.filter(isMan);C.rows=rowsAll.filter(function(x){return x.apt_id&&!isServ(x.apartments)});C.servRows=rowsAll.filter(function(x){return x.apt_id&&isServ(x.apartments)&&!isMan(x)}); // 13/11 (Karim): esterno, spazzatura, consegne… il cliente li vede a parte
  C.fondo={};if(!R[1].error)(R[1].data||[]).forEach(function(x){(C.fondo[x.passaggio_id]=C.fondo[x.passaggio_id]||[]).push(x.testo)});
  C.segn=R[2].data||[];
@@ -1069,6 +1069,8 @@ async function loadClient(){var C=S.cl;
  // lavoro dichiarato in un altro giorno: il cliente lo vede solo quando è chiuso
  C.rows=C.rows.filter(function(x){return !x.giorno_cliente||(C.pass[x.id]&&C.pass[x.id].closed_at)});C.servRows=C.servRows.filter(function(x){return !x.giorno_cliente||(C.pass[x.id]&&C.pass[x.id].closed_at)});
  if(!C._diagS&&C.date===todayStr()){C._diagS=1;var sR=C.servRows||[];logErr('diag-servizi-cliente','prog '+(pr.data||[]).length+' · servizi '+sR.length+' · senza scheda '+senzaApt.length,{senza_apt:senzaApt,servizi:sR.map(function(x){return x.id}),pass_servizi:sR.filter(function(x){return C.pass[x.id]}).map(function(x){return x.id})});}
+ // 13/11: elenco dei lavori di servizio per il riquadro (dalla funzione servizi_cliente del database; se manca, da quello che il cliente riesce a leggere)
+ var RS=R[10];C.servList=(RS&&!RS.error&&RS.data)?RS.data.map(function(x){return {name:x.name,code:x.code,closed_at:x.closed_at,started_at:x.started_at}}):(C.servRows||[]).map(function(pr){var q=C.pass[pr.id]||{};return {name:(pr.apartments||{}).name,code:(pr.apartments||{}).code,closed_at:q.closed_at,started_at:q.started_at}});
  C.richPass={};(R2[2].data||[]).forEach(function(q){C.richPass[q.program_id]=q});
  // manutenzioni: per ogni segnalazione messa nel programma, il passaggio e i video prima/dopo (conferma al cliente)
  C.manLav={};var progM=R2[1].data||[];
@@ -1116,7 +1118,7 @@ function clOltre(p,pr){if(!p||!p.closed_at||!pr||!pr.apartments||!pr.apartments.
 // 13/11: se le regole del database nascondono al cliente la scheda dei servizi, il nome lo prendiamo da qui (per id)
 var CL_SERV_NOTI={76:{code:'spazzcor',name:'Spazzatura Corridoni'},77:{code:'comunicor',name:'Parti comuni Corridoni'}};
 function clServTit(a){var SV=serv(a)||{};return a.code==='spazzcor'?'Bidoni della spazzatura':a.code==='comunicor'?'Pulizia dell’esterno e delle parti comuni':(SV.tit||'');}
-function clServCard(C){var L=C.servRows||[];if(!L.length)return '';return '<div class="card list"><h2 style="margin-bottom:6px">🧹 Altri lavori del giorno</h2>'+L.map(function(pr){var a=pr.apartments||{},SV=serv(a)||{},pz=C.pass[pr.id],st=clStato(pz,pr),tt=clServTit(a);return '<button class="it" data-cdet="'+pr.id+'" style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;padding:8px 0;border:0;border-top:1px solid var(--line);background:none;font:inherit;color:inherit;cursor:pointer"><span><b>'+(SV.ico?SV.ico+' ':'')+esc(a.name||'')+'</b>'+(tt?'<br><span class="note">'+esc(tt)+'</span>':'')+'</span><span class="pill '+st[0]+'">'+(pz&&pz.closed_at?em('fatto')+' Fatto alle '+hm(pz.closed_at):st[1])+'</span></button>'}).join('')+'<p class="note" style="margin:6px 0 0">Tocchi una voce per vedere le foto del lavoro fatto.</p></div>';}
+function clServCard(C){var L=C.servList||[];if(!L.length)return '';return '<div class="card list"><h2 style="margin-bottom:6px">🧹 Altri lavori del giorno</h2>'+L.map(function(x){var a={code:x.code,size:'servizio'},SV=serv(a)||{},tt=clServTit(a),st=x.closed_at?['ok',em('fatto')+' Fatto alle '+hm(x.closed_at)]:x.started_at?['warn','In corso']:['grey','Da fare'];return '<div class="it" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><span><b>'+(SV.ico?SV.ico+' ':'')+esc(x.name||'')+'</b>'+(tt?'<br><span class="note">'+esc(tt)+'</span>':'')+'</span><span class="pill '+st[0]+'">'+st[1]+'</span></div>'}).join('')+'</div>';}
 function clStato(p,pr){if(!p||!p.started_at)return ['grey','Da fare'];if(p.closed_at){var o=clOltre(p,pr);return o?['ok','Fatto · '+fmt(o)]:['ok','Fatto'];}return ['warn','In corso'];}
 function clFotoSeg(s){return s.photo_path?'<div class="thumbs" data-sphoto="'+esc(s.photo_path)+'"></div>':'';}
 function pvBox(s,perCliente){if(!s.prev_stato)return '';var dt=function(x){return x?new Date(x).fmD():''};
